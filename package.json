@@ -1,0 +1,11 @@
+{
+  "name": "formflow-extension",
+  "version": "1.0.0",
+  "description": "Deterministic Google Forms autofill Chrome Extension",
+  "scripts": {
+    "test": "node tests/test_engine.js",
+    "generate-icons": "node generate_icons.js"
+  },
+  "author": "CyberCodezilla",
+  "license": "MIT"
+}
