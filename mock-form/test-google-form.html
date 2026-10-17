@@ -1,2 +1,355 @@
 <!DOCTYPE html>
-<html><head><title>Test Form</title></head><body><div class='form-container'></div></body></html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FormFlow Verification Form — Telecommunications Assessment</title>
+  <link rel="stylesheet" href="../content/inject.css">
+  <script src="../content/parser.js"></script>
+  <script src="../content/scraper.js"></script>
+  <script src="../content/matcher.js"></script>
+  <script src="../content/filler.js"></script>
+  <style>
+    /* Demo floating top-bar */
+    .formflow-demo-bar {
+      position: sticky;
+      top: 12px;
+      z-index: 999;
+      background: #09090b;
+      color: #fafafa;
+      border: 1px solid #27272a;
+      border-radius: 8px;
+      padding: 10px 16px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+    .demo-bar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .demo-tag {
+      background: rgba(16, 185, 129, 0.15);
+      color: #10b981;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+    .demo-title {
+      font-size: 13px;
+      font-weight: 600;
+    }
+    .demo-btn-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .demo-run-btn {
+      background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+      color: #fff;
+      border: 1px solid rgba(16, 185, 129, 0.5);
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      padding: 6px 14px;
+      cursor: pointer;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.3);
+      transition: all 0.15s ease;
+    }
+    .demo-run-btn:hover {
+      background: #13ca8d;
+    }
+    .demo-undo-btn {
+      background: #18181b;
+      color: #e4e4e7;
+      border: 1px solid #27272a;
+      border-radius: 6px;
+      font-size: 12px;
+      font-weight: 500;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+    .demo-undo-btn:hover {
+      background: #27272a;
+    }
+  </style>
+    :root {
+      --gf-bg: #f0ebf8;
+      --gf-card-bg: #ffffff;
+      --gf-purple: #673ab7;
+      --gf-purple-dark: #512da8;
+      --gf-border: #dadce0;
+      --gf-text-main: #202124;
+      --gf-text-secondary: #70757a;
+      --gf-error: #d93025;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--gf-bg);
+      font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      color: var(--gf-text-main);
+      padding: 24px 16px 80px;
+      line-height: 1.5;
+    }
+
+    .form-container {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+
+    /* Form Header Card */
+    .header-card {
+      background: var(--gf-card-bg);
+      border-radius: 8px;
+      border-top: 10px solid var(--gf-purple);
+      border: 1px solid var(--gf-border);
+      border-top-width: 10px;
+      border-top-color: var(--gf-purple);
+      padding: 24px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+
+    .form-title {
+      font-size: 28px;
+      font-weight: 500;
+      margin-bottom: 8px;
+      color: var(--gf-text-main);
+    }
+
+    .form-description {
+      font-size: 14px;
+      color: var(--gf-text-secondary);
+      margin-bottom: 16px;
+    }
+
+    .required-notice {
+      font-size: 12px;
+      color: var(--gf-error);
+      font-weight: 500;
+    }
+
+    /* Question Cards mimicking Google Forms */
+    .question-card {
+      background: var(--gf-card-bg);
+      border-radius: 8px;
+      border: 1px solid var(--gf-border);
+      padding: 22px 24px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+      position: relative;
+      transition: border-color 0.2s;
+    }
+
+    .question-header {
+      margin-bottom: 16px;
+      padding-right: 120px; /* Space for FormFlow pill badge */
+    }
+
+    .question-title {
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--gf-text-main);
+    }
+
+    .required-asterisk {
+      color: var(--gf-error);
+      margin-left: 3px;
+    }
+
+    /* Options - Radio & Checkboxes */
+    .options-group {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .option-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      cursor: pointer;
+      user-select: none;
+      padding: 2px 0;
+    }
+
+    .gf-radio, .gf-checkbox {
+      width: 20px;
+      height: 20px;
+      border: 2px solid #5f6368;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.15s ease;
+      flex-shrink: 0;
+      outline: none;
+    }
+
+    .gf-checkbox {
+      border-radius: 3px;
+    }
+
+    .gf-radio[aria-checked="true"] {
+      border-color: var(--gf-purple);
+    }
+
+    .gf-radio[aria-checked="true"]::after {
+      content: "";
+      width: 10px;
+      height: 10px;
+      background-color: var(--gf-purple);
+      border-radius: 50%;
+    }
+
+    .gf-checkbox[aria-checked="true"] {
+      background-color: var(--gf-purple);
+      border-color: var(--gf-purple);
+    }
+
+    .gf-checkbox[aria-checked="true"]::after {
+      content: "✓";
+      color: #fff;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    .option-text {
+      font-size: 14px;
+      color: #3c4043;
+    }
+
+    /* Text Inputs */
+    .gf-input-text {
+      width: 100%;
+      max-width: 360px;
+      border: none;
+      border-bottom: 1px solid #dadce0;
+      padding: 8px 0;
+      font-size: 14px;
+      color: #202124;
+      outline: none;
+      transition: border-bottom 0.2s ease;
+      background: transparent;
+    }
+
+    .gf-input-text:focus {
+      border-bottom: 2px solid var(--gf-purple);
+    }
+
+    .gf-textarea {
+      width: 100%;
+      min-height: 80px;
+      border: none;
+      border-bottom: 1px solid #dadce0;
+      padding: 8px 0;
+      font-size: 14px;
+      color: #202124;
+      outline: none;
+      resize: vertical;
+      font-family: inherit;
+      background: transparent;
+    }
+
+    .gf-textarea:focus {
+      border-bottom: 2px solid var(--gf-purple);
+    }
+
+    /* Dropdown */
+    .gf-listbox {
+      display: inline-flex;
+      align-items: center;
+      justify-content: space-between;
+      min-width: 200px;
+      padding: 10px 14px;
+      border: 1px solid #dadce0;
+      border-radius: 4px;
+      font-size: 14px;
+      color: #3c4043;
+      cursor: pointer;
+      background: #fff;
+      user-select: none;
+      position: relative;
+    }
+
+    .gf-dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      width: 100%;
+      min-width: 260px;
+      background: #fff;
+      border-radius: 4px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+      z-index: 50;
+      margin-top: 4px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .gf-dropdown-menu.open {
+      display: block;
+    }
+
+    .gf-dropdown-option {
+      padding: 10px 14px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .gf-dropdown-option:hover {
+      background-color: #f1f3f4;
+    }
+
+    /* Action buttons */
+    .form-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 24px;
+    }
+
+    .submit-btn {
+      background-color: var(--gf-purple);
+      color: #fff;
+      border: none;
+      padding: 10px 24px;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+    }
+
+    .submit-btn:hover {
+      background-color: var(--gf-purple-dark);
+    }
+  </style>
+</head>
+<body>
+  <div class="form-container">
+    <!-- FormFlow Interactive Test Runner Bar -->
+    <div class="formflow-demo-bar">
+      <div class="demo-bar-left">
+        <span class="demo-tag">FORMFLOW VERIFIER</span>
+        <span class="demo-title">Test 10 PRD Questions Autofill</span>
+      </div>
+      <div class="demo-btn-group">
+        <button class="demo-undo-btn" id="demoUndoBtn">Reset / Undo</button>
+        <button class="demo-run-btn" id="demoRunBtn">⚡ Run Autofill (10 Answers)</button>
+      </div>
+    </div>
+
+    <body><div class='form-container'></div></body></html>
