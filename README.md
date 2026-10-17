@@ -19,6 +19,10 @@ No generative AI or LLMs are involved in the form-filling step. The engine relie
   * Dropdowns (`div[role="listbox"]` with async popup menu resolution)
   * Linear Scales & Grids (`div[role="radiogroup"]`)
 * **Skip Already-Filled & Identity Fields:**
-  * Real-worl
+  * Real-world Google Forms start with student/user identity fields (Full Name, Email, Roll Number). FormFlow detects fields that have already been typed or selected by the user and **skips them automatically** without advancing answer line indexes.
+  * `Answer[0]` accurately starts on the first real unanswered quiz question.
+  * Injects a neutral badge: `↷ Skipped (Pre-filled)` on touched forms.
+  * **Zero Data Loss on Undo:** Clicking **Reset / Undo** only rolls back fields modified by FormFlow—it **never wipes out** pre-filled student details.
+* **Utilitarian "Anti-AI" UI:** Sleek, developer-grade dark 
 
-## Development Milestones...
+*(Day 1 Complete)*
