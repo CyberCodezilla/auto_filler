@@ -4,6 +4,10 @@
   "version": "0.1.0",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://docs.google.com/forms/*"
   ]
 }
