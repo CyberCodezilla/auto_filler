@@ -164,7 +164,30 @@
       }
     }
 
-        return { score: 0, tier: 'NONE' };
+    // Tier 3: Fuzzy Similarity (Sorensen-Dice)
+    const diceScore = Math.max(
+      diceCoefficient(normUser, normCandidate),
+      diceCoefficient(normUser, cleanCand)
+    );
+
+    // Hard threshold at 0.80 - anything lower is strictly marked UNMATCHED (Zero-Hallucination)
+    if (diceScore >= 0.80) {
+      return {
+        score: Math.round(diceScore * 100) / 100,
+        tier: 'FUZZY',
+        reason: `Dice bigram similarity: ${(diceScore * 100).toFixed(1)}%`
+      };
+    }
+
+    return {
+      score: 0,
+      tier: 'NONE',
+      reason: `Below threshold (score: ${(diceScore * 100).toFixed(1)}% < 80%)`
+    };
   }
-  window.FormFlow.Parser = { cleanLine, parseInputLines, normalize, normalizeCompact, diceCoefficient, evaluateMatch };
+
+  /**
+   * Finds the best matching option from a list of options for a given answer.
+   */
+    window.FormFlow.Parser = { cleanLine, parseInputLines, normalize, normalizeCompact, diceCoefficient, evaluateMatch };
 })();
