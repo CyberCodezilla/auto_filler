@@ -26,5 +26,20 @@
   /**
    * Parses raw multiline text input into an array of clean answer strings.
    */
-    window.FormFlow.Parser = { cleanLine };
+  function parseInputLines(rawText) {
+    if (!rawText || typeof rawText !== 'string') return [];
+    return rawText
+      .split(/\r?\n/)
+      .map(line => cleanLine(line))
+      .filter(line => line.length > 0);
+  }
+
+  /**
+   * Normalizes a string for deterministic comparison:
+   * - Lowercases
+   * - Normalizes unicode quotes and hyphens
+   * - Strips non-alphanumeric punctuation except periods and hyphens
+   * - Collapses multiple whitespace to single space
+   */
+    window.FormFlow.Parser = { cleanLine, parseInputLines };
 })();
