@@ -63,5 +63,26 @@
   /**
    * Generates character bigrams for Sorensen-Dice coefficient calculation.
    */
+  function getBigrams(str) {
+    const s = str.trim();
+    const bigrams = new Map();
+    if (s.length < 2) {
+      if (s.length === 1) {
+        bigrams.set(s, 1);
+      }
+      return bigrams;
+    }
+    for (let i = 0; i < s.length - 1; i++) {
+      const bigram = s.substring(i, i + 2);
+      const count = bigrams.get(bigram) || 0;
+      bigrams.set(bigram, count + 1);
+    }
+    return bigrams;
+  }
+
+  /**
+   * Computes Sorensen-Dice coefficient between two strings.
+   * Returns a float between 0.0 and 1.0.
+   */
     window.FormFlow.Parser = { cleanLine, parseInputLines, normalize, normalizeCompact };
 })();
