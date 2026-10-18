@@ -115,5 +115,33 @@
    * Tier 2: Substring Inclusion (>= 92%)
    * Tier 3: Fuzzy Bigram Similarity (Dice's Coefficient >= 0.80 hard threshold)
    */
-    window.FormFlow.Parser = { cleanLine, parseInputLines, normalize, normalizeCompact, diceCoefficient };
+  function evaluateMatch(userAnswer, candidateText) {
+    const normUser = normalize(userAnswer);
+    const normCandidate = normalize(candidateText);
+
+    if (!normUser || !normCandidate) {
+      return { score: 0, tier: 'NONE', reason: 'Empty string' };
+    }
+
+    // Tier 1: Exact Normalized Match
+    if (normUser === normCandidate) {
+      return { score: 1.0, tier: 'EXACT', reason: 'Normalized exact match' };
+    }
+
+    // Compact check (handles spacing variations in numbers/units like "2.4 GHz" vs "2.4GHz")
+    const compactUser = normalizeCompact(userAnswer);
+    const compactCandidate = normalizeCompact(candidateText);
+    if (compactUser === compactCandidate) {
+      return { score: 1.0, tier: 'EXACT', reason: 'Compact exact match' };
+    }
+
+    // Clean any leading markers on candidate as well (e.g. "b) 2.4 GHz" -> "2.4 GHz")
+    const cleanCand = normalize(cleanLine(candidateText));
+    if (normUser === cleanCand || compactUser === normalizeCompact(cleanLine(candidateText))) {
+      return { score: 1.0, tier: 'EXACT', reason: 'Marker-stripped exact match' };
+    }
+
+        return { score: 0, tier: 'NONE' };
+  }
+  window.FormFlow.Parser = { cleanLine, parseInputLines, normalize, normalizeCompact, diceCoefficient, evaluateMatch };
 })();
