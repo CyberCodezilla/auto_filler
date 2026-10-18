@@ -84,5 +84,36 @@
    * Computes Sorensen-Dice coefficient between two strings.
    * Returns a float between 0.0 and 1.0.
    */
-    window.FormFlow.Parser = { cleanLine, parseInputLines, normalize, normalizeCompact };
+  function diceCoefficient(str1, str2) {
+    const s1 = normalize(str1);
+    const s2 = normalize(str2);
+
+    if (s1 === s2) return 1.0;
+    if (s1.length < 2 || s2.length < 2) {
+      return s1 === s2 ? 1.0 : 0.0;
+    }
+
+    const bigrams1 = getBigrams(s1);
+    const bigrams2 = getBigrams(s2);
+
+    let intersectionSize = 0;
+    for (const [bigram, count1] of bigrams1.entries()) {
+      if (bigrams2.has(bigram)) {
+        intersectionSize += Math.min(count1, bigrams2.get(bigram));
+      }
+    }
+
+    let totalBigrams = (s1.length - 1) + (s2.length - 1);
+    return (2.0 * intersectionSize) / totalBigrams;
+  }
+
+  /**
+   * 3-Tier Waterfall Matching Engine
+   * Evaluates user input against a candidate option label.
+   *
+   * Tier 1: Exact Normalized Match (100% / 1.0)
+   * Tier 2: Substring Inclusion (>= 92%)
+   * Tier 3: Fuzzy Bigram Similarity (Dice's Coefficient >= 0.80 hard threshold)
+   */
+    window.FormFlow.Parser = { cleanLine, parseInputLines, normalize, normalizeCompact, diceCoefficient };
 })();
