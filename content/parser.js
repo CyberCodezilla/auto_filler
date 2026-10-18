@@ -189,5 +189,36 @@
   /**
    * Finds the best matching option from a list of options for a given answer.
    */
-    window.FormFlow.Parser = { cleanLine, parseInputLines, normalize, normalizeCompact, diceCoefficient, evaluateMatch };
+  function findBestOptionMatch(userAnswer, options) {
+    if (!options || options.length === 0) return null;
+
+    let bestMatch = null;
+    let highestScore = 0;
+
+    for (const opt of options) {
+      const evaluation = evaluateMatch(userAnswer, opt.text);
+      if (evaluation.score > highestScore) {
+        highestScore = evaluation.score;
+        bestMatch = {
+          option: opt,
+          score: evaluation.score,
+          tier: evaluation.tier,
+          reason: evaluation.reason
+        };
+      }
+    }
+
+    // Must be at least 0.80 to be accepted
+    if (highestScore >= 0.80) {
+      return bestMatch;
+    }
+
+    return null;
+  }
+
+  /**
+   * Splits an answer into multiple items if it contains delimiters (e.g. comma, semicolon).
+   * Useful for checkbox multi-selects.
+   */
+    window.FormFlow.Parser = { cleanLine, parseInputLines, normalize, normalizeCompact, diceCoefficient, evaluateMatch, findBestOptionMatch };
 })();
