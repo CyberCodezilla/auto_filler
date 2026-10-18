@@ -220,5 +220,26 @@
    * Splits an answer into multiple items if it contains delimiters (e.g. comma, semicolon).
    * Useful for checkbox multi-selects.
    */
-    window.FormFlow.Parser = { cleanLine, parseInputLines, normalize, normalizeCompact, diceCoefficient, evaluateMatch, findBestOptionMatch };
+  function splitMultiAnswer(answerStr) {
+    if (!answerStr) return [];
+    if (answerStr.includes(';') || answerStr.includes(',')) {
+      const delimiter = answerStr.includes(';') ? ';' : ',';
+      return answerStr
+        .split(delimiter)
+        .map(s => cleanLine(s))
+        .filter(s => s.length > 0);
+    }
+    return [cleanLine(answerStr)];
+  }
+
+  window.FormFlow.Parser = {
+    cleanLine,
+    parseInputLines,
+    normalize,
+    normalizeCompact,
+    diceCoefficient,
+    evaluateMatch,
+    findBestOptionMatch,
+    splitMultiAnswer
+  };
 })();
