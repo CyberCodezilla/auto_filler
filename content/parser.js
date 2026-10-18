@@ -41,5 +41,20 @@
    * - Strips non-alphanumeric punctuation except periods and hyphens
    * - Collapses multiple whitespace to single space
    */
-    window.FormFlow.Parser = { cleanLine, parseInputLines };
+  function normalize(str) {
+    if (!str || typeof str !== 'string') return '';
+    return str
+      .toLowerCase()
+      .replace(/[\u2018\u2019]/g, "'")
+      .replace(/[\u201C\u201D]/g, '"')
+      .replace(/[\u2013\u2014]/g, '-')
+      .replace(/[^\w\s.\-]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
+  /**
+   * Compact normalized form without any whitespace (useful for units e.g. "2.4 ghz" vs "2.4ghz")
+   */
+    window.FormFlow.Parser = { cleanLine, parseInputLines, normalize };
 })();
