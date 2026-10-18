@@ -56,5 +56,12 @@
   /**
    * Compact normalized form without any whitespace (useful for units e.g. "2.4 ghz" vs "2.4ghz")
    */
-    window.FormFlow.Parser = { cleanLine, parseInputLines, normalize };
+  function normalizeCompact(str) {
+    return normalize(str).replace(/\s+/g, '');
+  }
+
+  /**
+   * Generates character bigrams for Sorensen-Dice coefficient calculation.
+   */
+    window.FormFlow.Parser = { cleanLine, parseInputLines, normalize, normalizeCompact };
 })();
