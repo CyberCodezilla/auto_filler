@@ -141,6 +141,29 @@
       return { score: 1.0, tier: 'EXACT', reason: 'Marker-stripped exact match' };
     }
 
+    // Tier 2: Substring Inclusion
+    // Handles cases like candidate: "RSSI (Received Signal Strength Indicator)" vs input: "RSSI"
+    // or candidate: "Transferring an ongoing connection..." vs input containing core phrase
+    const minLength = Math.min(normUser.length, cleanCand.length);
+    const maxLength = Math.max(normUser.length, cleanCand.length);
+
+    if (minLength >= 2) {
+      const candidateContainsUser = cleanCand.includes(normUser) || normCandidate.includes(normUser);
+      const userContainsCandidate = normUser.includes(cleanCand) || normUser.includes(normCandidate);
+
+      if (candidateContainsUser || userContainsCandidate) {
+        // High confidence substring match
+        const inclusionRatio = minLength / maxLength;
+        // Substring score scaled between 0.92 and 0.98 based on relative coverage
+        const subScore = Math.max(0.92, Math.min(0.98, 0.90 + (inclusionRatio * 0.08)));
+        return {
+          score: subScore,
+          tier: 'SUBSTRING',
+          reason: candidateContainsUser ? 'Option contains answer' : 'Answer contains option'
+        };
+      }
+    }
+
         return { score: 0, tier: 'NONE' };
   }
   window.FormFlow.Parser = { cleanLine, parseInputLines, normalize, normalizeCompact, diceCoefficient, evaluateMatch };
