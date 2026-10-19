@@ -105,7 +105,31 @@
       // Check required status
       const isRequired = !!(container.querySelector('.freebirdFormviewerComponentsQuestionBaseRequiredAsterisk, [aria-label*="required" i]') || heading?.innerText.includes('*'));
 
-          });
+      // 2. Identify input type and extract elements
+      const radios = Array.from(container.querySelectorAll('div[role="radio"]'));
+      const checkboxes = Array.from(container.querySelectorAll('div[role="checkbox"]'));
+      const listbox = container.querySelector('div[role="listbox"]');
+      const textarea = container.querySelector('textarea');
+      const textInput = container.querySelector(
+        'input[type="text"], input[type="email"], input[type="number"], input[type="tel"], input[type="url"], input:not([type])'
+      );
+      const radioGroups = Array.from(container.querySelectorAll('div[role="radiogroup"], tr[role="row"]'));
+
+      let type = 'unknown';
+      let options = [];
+      let inputElement = null;
+
+      if (radios.length > 0 && radioGroups.length <= 1) {
+        // Standard Multiple Choice
+        type = 'radio';
+        options = radios.map(radioEl => ({
+          text: getOptionLabel(radioEl),
+          element: radioEl,
+          isChecked: radioEl.getAttribute('aria-checked') === 'true'
+        })).filter(opt => opt.text.length > 0);
+            } else if (textInput) { type = 'text'; inputElement = textInput; }
+      if (type !== 'unknown') questions.push({ id: qId, index, title, type, options, inputElement, container });
+    });
     return questions;
   }
   window.FormFlow.Scraper = { extractDataParams, getOptionLabel, scrapeFormQuestions };
