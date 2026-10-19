@@ -32,5 +32,38 @@
   /**
    * Extracts clean text from an option element (Radio, Checkbox, Dropdown option)
    */
-    window.FormFlow.Scraper = { extractDataParams };
+  function getOptionLabel(el) {
+    if (!el) return '';
+
+    // Check data-value attribute first
+    const dataVal = el.getAttribute('data-value');
+    if (dataVal && dataVal.trim().length > 0 && dataVal !== '__other_option__') {
+      return dataVal.trim();
+    }
+
+    // Check aria-label
+    const ariaLabel = el.getAttribute('aria-label');
+    if (ariaLabel && ariaLabel.trim().length > 0) {
+      return ariaLabel.trim();
+    }
+
+    // Check for standard Google Forms label spans
+    const labelSpan = el.querySelector('.aDTYNe, .docssharedWizToggleLabeledLabelText, .O5aex, .Y2Zypf, span');
+    if (labelSpan && labelSpan.innerText && labelSpan.innerText.trim().length > 0) {
+      return labelSpan.innerText.trim();
+    }
+
+    // Fallback to parent or closest label
+    const parentLabel = el.closest('label');
+    if (parentLabel && parentLabel.innerText && parentLabel.innerText.trim().length > 0) {
+      return parentLabel.innerText.trim();
+    }
+
+    return (el.innerText || '').trim();
+  }
+
+  /**
+   * Scrapes all Google Form questions present on the page.
+   */
+    window.FormFlow.Scraper = { extractDataParams, getOptionLabel };
 })();
