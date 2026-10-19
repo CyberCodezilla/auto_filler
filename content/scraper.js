@@ -65,5 +65,48 @@
   /**
    * Scrapes all Google Form questions present on the page.
    */
-    window.FormFlow.Scraper = { extractDataParams, getOptionLabel };
+  function scrapeFormQuestions() {
+    // Standard Google Forms wraps each question in div[role="listitem"]
+    let containers = Array.from(document.querySelectorAll('div[role="listitem"]'));
+
+    // Fallback: If no role="listitem" (e.g. non-standard forms or modified templates), check for known form card classes
+    if (containers.length === 0) {
+      containers = Array.from(document.querySelectorAll('.freebirdFormviewerComponentsQuestionBaseRoot, .Qr7Oae, .geS5n'));
+    }
+
+    const questions = [];
+
+    containers.forEach((container, index) => {
+      // Ensure container has relative positioning for badge injection
+      if (window.getComputedStyle(container).position === 'static') {
+        container.style.position = 'relative';
+      }
+
+      // Assign an ID for easy jump-to-element
+      const qId = `formflow-question-${index}`;
+      container.setAttribute('data-formflow-id', qId);
+
+      // 1. Scrape Title
+      const heading = container.querySelector('[role="heading"], .freebirdFormviewerComponentsQuestionBaseTitle, .M7eMe, .RveJvd');
+      let title = heading ? heading.innerText.trim() : '';
+
+      // Fallback title from data-params if heading is empty
+      const dataParams = extractDataParams(container);
+      if (!title && Array.isArray(dataParams) && typeof dataParams[1] === 'string') {
+        title = dataParams[1].trim();
+      }
+
+      // Clean title: remove trailing asterisk and whitespace
+      title = title.replace(/\s*\*\s*$/, '').trim();
+      if (!title) {
+        title = `Question ${index + 1}`;
+      }
+
+      // Check required status
+      const isRequired = !!(container.querySelector('.freebirdFormviewerComponentsQuestionBaseRequiredAsterisk, [aria-label*="required" i]') || heading?.innerText.includes('*'));
+
+          });
+    return questions;
+  }
+  window.FormFlow.Scraper = { extractDataParams, getOptionLabel, scrapeFormQuestions };
 })();
