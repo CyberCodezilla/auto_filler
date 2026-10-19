@@ -135,6 +135,30 @@
           element: cbEl,
           isChecked: cbEl.getAttribute('aria-checked') === 'true'
         })).filter(opt => opt.text.length > 0);
+      } else if (listbox) {
+        // Dropdown menu
+        type = 'dropdown';
+        // Options may be in data-params or inside listbox options
+        const domOptions = Array.from(listbox.querySelectorAll('div[role="option"]'));
+        if (domOptions.length > 0) {
+          options = domOptions
+            .filter(el => {
+              const val = el.getAttribute('data-value');
+              return val && val !== '';
+            })
+            .map(el => ({
+              text: getOptionLabel(el),
+              element: el,
+              trigger: listbox
+            }));
+        } else if (Array.isArray(dataParams) && Array.isArray(dataParams[4])) {
+          // Extract from data-params if closed dropdown
+          options = dataParams[4].map(optData => ({
+            text: Array.isArray(optData) ? String(optData[0]) : String(optData),
+            element: null,
+            trigger: listbox
+          }));
+        }
             } else if (textInput) { type = 'text'; inputElement = textInput; }
       if (type !== 'unknown') questions.push({ id: qId, index, title, type, options, inputElement, container });
     });
