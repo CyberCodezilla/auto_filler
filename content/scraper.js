@@ -159,8 +159,31 @@
             trigger: listbox
           }));
         }
-            } else if (textInput) { type = 'text'; inputElement = textInput; }
-      if (type !== 'unknown') questions.push({ id: qId, index, title, type, options, inputElement, container });
+      } else if (textarea) {
+        // Paragraph / Long text
+        type = 'textarea';
+        inputElement = textarea;
+      } else if (textInput && textInput.type !== 'hidden') {
+        // Short Answer
+        type = 'text';
+        inputElement = textInput;
+      } else if (radioGroups.length > 1 || container.querySelector('table[role="grid"]')) {
+        // Linear scale / Grid
+        type = 'grid';
+        options = radioGroups.map((group, gIdx) => {
+          const groupRadios = Array.from(group.querySelectorAll('div[role="radio"]'));
+          const groupLabel = group.getAttribute('aria-label') || group.querySelector('td, th, [role="rowheader"]')?.innerText || `Row ${gIdx + 1}`;
+          return {
+            rowLabel: groupLabel.trim(),
+            radios: groupRadios.map(r => ({
+              text: getOptionLabel(r) || r.getAttribute('data-value') || '',
+              element: r
+            }))
+          };
+        });
+      }
+
+            if (type !== 'unknown') questions.push({ id: qId, index, title, type, options, inputElement, container });
     });
     return questions;
   }
