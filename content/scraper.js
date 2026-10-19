@@ -127,6 +127,14 @@
           element: radioEl,
           isChecked: radioEl.getAttribute('aria-checked') === 'true'
         })).filter(opt => opt.text.length > 0);
+      } else if (checkboxes.length > 0 && radioGroups.length <= 1) {
+        // Checkboxes (Multi-select)
+        type = 'checkbox';
+        options = checkboxes.map(cbEl => ({
+          text: getOptionLabel(cbEl),
+          element: cbEl,
+          isChecked: cbEl.getAttribute('aria-checked') === 'true'
+        })).filter(opt => opt.text.length > 0);
             } else if (textInput) { type = 'text'; inputElement = textInput; }
       if (type !== 'unknown') questions.push({ id: qId, index, title, type, options, inputElement, container });
     });
