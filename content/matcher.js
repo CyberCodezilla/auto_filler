@@ -241,7 +241,56 @@
       }
     }
 
-        return { score: 0, status: 'UNMATCHED' };
+    // 5. Grid / Linear Scale
+    if (q.type === 'grid') {
+      // Find matching number or label in the scale row
+      let matchedRadio = null;
+      for (const row of q.options) {
+        for (const radio of (row.radios || [])) {
+          const evalRes = Parser.evaluateMatch(answer, radio.text);
+          if (evalRes.score >= 0.80) {
+            matchedRadio = radio.element;
+            break;
+          }
+        }
+        if (matchedRadio) break;
+      }
+
+      if (matchedRadio) {
+        return {
+          questionIndex: q.index,
+          questionId: q.id,
+          questionTitle: q.title,
+          questionType: q.type,
+          userAnswer: answer,
+          matchedValue: answer,
+          targetElements: [matchedRadio],
+          score: 1.0,
+          tier: 'EXACT',
+          status: 'EXACT',
+          reason: 'Scale radio matched'
+        };
+      }
+    }
+
+    return {
+      questionIndex: q.index,
+      questionId: q.id,
+      questionTitle: q.title,
+      questionType: q.type,
+      userAnswer: answer,
+      matchedValue: null,
+      targetElements: [],
+      score: 0,
+      tier: 'NONE',
+      status: 'UNMATCHED',
+      reason: 'Unknown question format'
+    };
   }
-  window.FormFlow.Matcher = { matchSingleQuestion };
+
+  /**
+   * Plans autofill actions according to Mode 2 (Global Option-Pool / Smart Shuffle)
+   * Designed for randomized questions. Skips pre-filled fields when skipFilledQuestions is true.
+   */
+    window.FormFlow.Matcher = { matchSingleQuestion, matchSequential };
 })();
