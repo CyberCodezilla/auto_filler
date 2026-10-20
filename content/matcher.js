@@ -205,6 +205,42 @@
       }
     }
 
+    // 4. Dropdown (listbox)
+    if (q.type === 'dropdown') {
+      const match = Parser.findBestOptionMatch(answer, q.options);
+      if (match) {
+        return {
+          questionIndex: q.index,
+          questionId: q.id,
+          questionTitle: q.title,
+          questionType: q.type,
+          userAnswer: answer,
+          matchedValue: match.option.text,
+          targetElements: match.option.element ? [match.option.element] : [],
+          dropdownTrigger: q.listbox,
+          score: match.score,
+          tier: match.tier,
+          status: match.score === 1.0 ? 'EXACT' : 'FUZZY',
+          reason: match.reason
+        };
+      } else {
+        return {
+          questionIndex: q.index,
+          questionId: q.id,
+          questionTitle: q.title,
+          questionType: q.type,
+          userAnswer: answer,
+          matchedValue: null,
+          targetElements: [],
+          dropdownTrigger: q.listbox,
+          score: 0,
+          tier: 'NONE',
+          status: 'UNMATCHED',
+          reason: 'No dropdown option matched above 0.80 threshold'
+        };
+      }
+    }
+
         return { score: 0, status: 'UNMATCHED' };
   }
   window.FormFlow.Matcher = { matchSingleQuestion };
