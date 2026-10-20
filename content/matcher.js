@@ -157,6 +157,54 @@
       }
     }
 
+    // 3. Checkboxes (Multi-select)
+    if (q.type === 'checkbox') {
+      const subAnswers = Parser.splitMultiAnswer(answer);
+      const matchedOptions = [];
+      const targetEls = [];
+      let totalScore = 0;
+
+      for (const subAns of subAnswers) {
+        const match = Parser.findBestOptionMatch(subAns, q.options);
+        if (match) {
+          matchedOptions.push(match.option.text);
+          targetEls.push(match.option.element);
+          totalScore += match.score;
+        }
+      }
+
+      if (matchedOptions.length > 0) {
+        const avgScore = totalScore / matchedOptions.length;
+        return {
+          questionIndex: q.index,
+          questionId: q.id,
+          questionTitle: q.title,
+          questionType: q.type,
+          userAnswer: answer,
+          matchedValue: matchedOptions.join(', '),
+          targetElements: targetEls,
+          score: Math.round(avgScore * 100) / 100,
+          tier: avgScore === 1.0 ? 'EXACT' : 'FUZZY',
+          status: avgScore === 1.0 ? 'EXACT' : 'FUZZY',
+          reason: `Matched ${matchedOptions.length} of ${subAnswers.length} checkbox options`
+        };
+      } else {
+        return {
+          questionIndex: q.index,
+          questionId: q.id,
+          questionTitle: q.title,
+          questionType: q.type,
+          userAnswer: answer,
+          matchedValue: null,
+          targetElements: [],
+          score: 0,
+          tier: 'NONE',
+          status: 'UNMATCHED',
+          reason: 'No checkbox options matched'
+        };
+      }
+    }
+
         return { score: 0, status: 'UNMATCHED' };
   }
   window.FormFlow.Matcher = { matchSingleQuestion };
