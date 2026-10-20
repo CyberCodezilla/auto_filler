@@ -159,5 +159,158 @@
   /**
    * Executes the autofill plan across all questions on the page
    */
-    window.FormFlow.Filler = { fillTextInput, clickChoiceElement, fillDropdown, injectVisualIndicator };
+  async function executeAutofill(questions, matchPlan) {
+    const snapshot = {
+      timestamp: Date.now(),
+      textInputs: [],
+      choiceInputs: []
+    };
+
+    const auditLog = [];
+
+    for (let i = 0; i < matchPlan.length; i++) {
+      const planItem = matchPlan[i];
+      const q = questions[planItem.questionIndex];
+      if (!q) continue;
+
+      let fillSuccess = false;
+
+      // DO NOT TOUCH PRE-FILLED QUESTIONS
+      if (planItem.status === 'SKIPPED_PREFILLED') {
+        fillSuccess = false;
+        // Do not alter or record into snapshot
+      }
+
+      // 1. Text Inputs
+      else if (q.type === 'text' || q.type === 'textarea') {
+        if (q.inputElement && planItem.userAnswer) {
+          snapshot.textInputs.push({
+            element: q.inputElement,
+            previousValue: q.inputElement.value
+          });
+
+          fillTextInput(q.inputElement, planItem.userAnswer);
+          fillSuccess = true;
+        }
+      }
+
+      // 2. Choice Inputs (Radio / Checkbox)
+      else if (q.type === 'radio' || q.type === 'checkbox' || q.type === 'grid') {
+        if (planItem.targetElements && planItem.targetElements.length > 0) {
+          for (const el of planItem.targetElements) {
+            const wasChecked = el.getAttribute('aria-checked') === 'true';
+            snapshot.choiceInputs.push({
+              element: el,
+              previousState: wasChecked
+            });
+
+            if (!wasChecked) {
+              clickChoiceElement(el);
+            }
+          }
+          fillSuccess = true;
+        }
+      }
+
+      // 3. Dropdown (listbox)
+      else if (q.type === 'dropdown') {
+        if (planItem.status !== 'UNMATCHED' && planItem.status !== 'SKIPPED' && planItem.status !== 'SKIPPED_PREFILLED') {
+          const success = await fillDropdown(
+            planItem.dropdownTrigger || q.listbox,
+            planItem.matchedValue,
+            planItem.targetElements?.[0]
+          );
+          fillSuccess = success;
+        }
+      }
+
+      // Inject visual pill badge into question header
+      injectVisualIndicator(q.container, planItem);
+
+      auditLog.push({
+        index: i + 1,
+        questionId: q.id,
+        title: q.title,
+        type: q.type,
+        userAnswer: planItem.userAnswer,
+        matchedValue: planItem.matchedValue,
+        status: planItem.status,
+        tier: planItem.tier,
+        score: planItem.score,
+        reason: planItem.reason,
+        applied: fillSuccess
+      });
+    }
+
+    lastExecutionSnapshot = snapshot;
+
+    return {
+      auditLog,
+      totalQuestions: questions.length,
+      filledCount: auditLog.filter(item => item.status === 'EXACT' || item.status === 'FUZZY').length,
+      exactCount: auditLog.filter(item => item.status === 'EXACT').length,
+      fuzzyCount: auditLog.filter(item => item.status === 'FUZZY').length,
+      unmatchedCount: auditLog.filter(item => item.status === 'UNMATCHED').length,
+      skippedCount: auditLog.filter(item => item.status === 'SKIPPED').length,
+      prefilledCount: auditLog.filter(item => item.status === 'SKIPPED_PREFILLED').length
+    };
+  }
+
+  /**
+   * Reverts changes from the last autofill execution
+   */
+  function undoAutofill() {
+    if (!lastExecutionSnapshot) {
+      return { success: false, message: 'No autofill execution to undo' };
+    }
+
+    // 1. Revert text inputs
+    lastExecutionSnapshot.textInputs.forEach(item => {
+      if (item.element) {
+        fillTextInput(item.element, item.previousValue || '');
+      }
+    });
+
+    // 2. Revert radio/checkbox selections
+    lastExecutionSnapshot.choiceInputs.forEach(item => {
+      if (item.element) {
+        const currentlyChecked = item.element.getAttribute('aria-checked') === 'true';
+        if (currentlyChecked !== item.previousState) {
+          clickChoiceElement(item.element);
+        }
+      }
+    });
+
+    // 3. Remove all injected badges
+    document.querySelectorAll('.formflow-pill').forEach(pill => pill.remove());
+
+    lastExecutionSnapshot = null;
+    return { success: true, message: 'All autofilled inputs and badges reverted' };
+  }
+
+  /**
+   * Smoothly scrolls to a specific question on the form and flashes a highlight outline
+   */
+  function scrollToQuestion(questionId) {
+    const target = document.querySelector(`[data-formflow-id="${questionId}"]`);
+    if (target) {
+      target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      target.classList.add('formflow-active-highlight');
+      setTimeout(() => {
+        target.classList.remove('formflow-active-highlight');
+      }, 2200);
+      return true;
+    }
+    return false;
+  }
+
+  window.FormFlow.Filler = {
+    fillTextInput,
+    clickChoiceElement,
+    fillDropdown,
+    injectVisualIndicator,
+    executeAutofill,
+    undoAutofill,
+    scrollToQuestion
+  };
 })();
