@@ -123,6 +123,40 @@
       };
     }
 
+    // 2. Radio (Multiple Choice)
+    if (q.type === 'radio') {
+      const match = Parser.findBestOptionMatch(answer, q.options);
+      if (match) {
+        return {
+          questionIndex: q.index,
+          questionId: q.id,
+          questionTitle: q.title,
+          questionType: q.type,
+          userAnswer: answer,
+          matchedValue: match.option.text,
+          targetElements: [match.option.element],
+          score: match.score,
+          tier: match.tier,
+          status: match.score === 1.0 ? 'EXACT' : 'FUZZY',
+          reason: match.reason
+        };
+      } else {
+        return {
+          questionIndex: q.index,
+          questionId: q.id,
+          questionTitle: q.title,
+          questionType: q.type,
+          userAnswer: answer,
+          matchedValue: null,
+          targetElements: [],
+          score: 0,
+          tier: 'NONE',
+          status: 'UNMATCHED',
+          reason: 'No option matched above 0.80 similarity threshold'
+        };
+      }
+    }
+
         return { score: 0, status: 'UNMATCHED' };
   }
   window.FormFlow.Matcher = { matchSingleQuestion };
