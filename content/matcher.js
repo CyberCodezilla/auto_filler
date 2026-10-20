@@ -292,5 +292,103 @@
    * Plans autofill actions according to Mode 2 (Global Option-Pool / Smart Shuffle)
    * Designed for randomized questions. Skips pre-filled fields when skipFilledQuestions is true.
    */
-    window.FormFlow.Matcher = { matchSingleQuestion, matchSequential };
+  function matchSmartShuffle(questions, userAnswers, skipFilledQuestions = true) {
+    const results = new Array(questions.length);
+    const usedAnswerIndices = new Set();
+    const resolvedQuestionIndices = new Set();
+
+    // Step 0: Pre-populate skipped questions if skipFilledQuestions is enabled
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+      if (skipFilledQuestions && q.isAlreadyFilled) {
+        results[i] = {
+          questionIndex: q.index !== undefined ? q.index : i,
+          questionId: q.id,
+          questionTitle: q.title,
+          questionType: q.type,
+          userAnswer: q.currentValue || '',
+          matchedValue: q.currentValue || '',
+          targetElements: [],
+          score: 1.0,
+          tier: 'NONE',
+          status: 'SKIPPED_PREFILLED',
+          reason: 'Skipped: Field already filled by user'
+        };
+        resolvedQuestionIndices.add(i);
+      }
+    }
+
+    // Step 1: Pair active choice questions against all candidate answers
+    const candidateMatches = [];
+
+    questions.forEach((q, qIdx) => {
+      if (resolvedQuestionIndices.has(qIdx)) return;
+
+      if (q.type === 'radio' || q.type === 'checkbox' || q.type === 'dropdown') {
+        userAnswers.forEach((ans, aIdx) => {
+          const matchRes = matchSingleQuestion(q, ans);
+          if (matchRes.score >= 0.80) {
+            candidateMatches.push({
+              questionIndex: qIdx,
+              answerIndex: aIdx,
+              result: matchRes,
+              score: matchRes.score
+            });
+          }
+        });
+      }
+    });
+
+    // Sort candidate matches by score descending (exact matches first)
+    candidateMatches.sort((a, b) => b.score - a.score);
+
+    // Greedily lock in top unique pairs
+    candidateMatches.forEach(item => {
+      if (!resolvedQuestionIndices.has(item.questionIndex) && !usedAnswerIndices.has(item.answerIndex)) {
+        resolvedQuestionIndices.add(item.questionIndex);
+        usedAnswerIndices.add(item.answerIndex);
+        results[item.questionIndex] = item.result;
+      }
+    });
+
+    // Step 2: Remaining unused answers map sequentially to open text fields and remaining questions
+    const remainingAnswers = [];
+    userAnswers.forEach((ans, aIdx) => {
+      if (!usedAnswerIndices.has(aIdx)) {
+        remainingAnswers.push(ans);
+      }
+    });
+
+    let remAnsIdx = 0;
+    questions.forEach((q, qIdx) => {
+      if (!results[qIdx]) {
+        if (remAnsIdx < remainingAnswers.length) {
+          const ans = remainingAnswers[remAnsIdx++];
+          results[qIdx] = matchSingleQuestion(q, ans);
+        } else {
+          results[qIdx] = {
+            questionIndex: q.index !== undefined ? q.index : qIdx,
+            questionId: q.id,
+            questionTitle: q.title,
+            questionType: q.type,
+            userAnswer: '',
+            matchedValue: null,
+            targetElements: [],
+            score: 0,
+            tier: 'NONE',
+            status: 'SKIPPED',
+            reason: 'No remaining answer for this question'
+          };
+        }
+      }
+    });
+
+    return results;
+  }
+
+  window.FormFlow.Matcher = {
+    matchSequential,
+    matchSmartShuffle,
+    matchSingleQuestion
+  };
 })();
