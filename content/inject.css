@@ -1,3 +1,128 @@
 /**
- * FormFlow - In-Page Indicators
+ * FormFlow - In-Page Indicators & Focus Highlights
+ * Injected into Google Forms pages
  */
+
+/* Pill Badge Container */
+.formflow-pill {
+  position: absolute;
+  top: 14px;
+  right: 18px;
+  z-index: 100;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  pointer-events: auto;
+  user-select: none;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: formflowFadeIn 0.25s ease-out;
+}
+
+@keyframes formflowFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.formflow-pill .formflow-icon {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
+}
+
+/* Tier 1 / Exact Match (Emerald) */
+.formflow-pill-exact {
+  background: rgba(16, 185, 129, 0.14);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.formflow-pill-exact:hover {
+  background: rgba(16, 185, 129, 0.22);
+  border-color: rgba(16, 185, 129, 0.6);
+}
+
+/* Tier 2 & 3 / Fuzzy Match (Amber) */
+.formflow-pill-fuzzy {
+  background: rgba(245, 158, 11, 0.14);
+  color: #f59e0b;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.formflow-pill-fuzzy:hover {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: rgba(245, 158, 11, 0.6);
+}
+
+/* Unmatched / Action Needed (Crimson) */
+.formflow-pill-unmatched {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  backdrop-filter: blur(8px);
+  cursor: pointer;
+}
+
+.formflow-pill-unmatched:hover {
+  background: rgba(239, 68, 68, 0.25);
+  border-color: rgba(239, 68, 68, 0.7);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+}
+
+/* Skipped (Slate) */
+.formflow-pill-skipped {
+  background: rgba(100, 116, 139, 0.12);
+  color: #94a3b8;
+  border: 1px solid rgba(100, 116, 139, 0.25);
+}
+
+/* Skipped Pre-filled by User (Zinc / Slate Neutral) */
+.formflow-pill-prefilled {
+  background: #18181b;
+  color: #a1a1aa;
+  border: 1px solid #3f3f46;
+  backdrop-filter: blur(8px);
+}
+
+.formflow-pill-prefilled:hover {
+  background: #27272a;
+  border-color: #71717a;
+  color: #fafafa;
+}
+
+/* Focus / Jump Highlighting Animation */
+.formflow-active-highlight {
+  outline: 2px solid #10b981 !important;
+  outline-offset: 4px !important;
+  border-radius: 8px !important;
+  box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25), 0 8px 24px rgba(0, 0, 0, 0.2) !important;
+  transition: all 0.3s ease;
+  animation: formflowPulse 1.8s infinite;
+}
+
+@keyframes formflowPulse {
+  0% {
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.35);
+  }
+  50% {
+    box-shadow: 0 0 0 8px rgba(16, 185, 129, 0.12);
+  }
+  100% {
+    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.35);
+  }
+}
