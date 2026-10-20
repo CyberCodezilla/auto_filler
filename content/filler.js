@@ -98,5 +98,66 @@
   /**
    * Injects or updates an in-page visual indicator pill badge on the question card
    */
-    window.FormFlow.Filler = { fillTextInput, clickChoiceElement, fillDropdown };
+  function injectVisualIndicator(container, matchResult) {
+    if (!container) return;
+
+    // Remove any existing badge
+    const existingBadge = container.querySelector('.formflow-pill');
+    if (existingBadge) {
+      existingBadge.remove();
+    }
+
+    const badge = document.createElement('div');
+    badge.className = 'formflow-pill';
+
+    if (matchResult.status === 'EXACT') {
+      badge.classList.add('formflow-pill-exact');
+      badge.innerHTML = `
+        <svg class="formflow-icon" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M13.78 4.22a.75.75 0 010 1.06l-7.25 7.25a.75.75 0 01-1.06 0L2.22 9.28a.75.75 0 011.06-1.06L6 10.94l6.72-6.72a.75.75 0 011.06 0z"/>
+        </svg>
+        <span>Filled (Exact)</span>
+      `;
+      badge.title = `Matched: "${matchResult.matchedValue}"`;
+    } else if (matchResult.status === 'FUZZY') {
+      badge.classList.add('formflow-pill-fuzzy');
+      const pct = Math.round(matchResult.score * 100);
+      badge.innerHTML = `
+        <svg class="formflow-icon" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M2.5 7.75A.75.75 0 013.25 7h9.5a.75.75 0 010 1.5h-9.5A.75.75 0 012.5 7.75zm0-3A.75.75 0 013.25 4h9.5a.75.75 0 010 1.5h-9.5A.75.75 0 012.5 4.75zm0 6A.75.75 0 013.25 10h9.5a.75.75 0 010 1.5h-9.5a.75.75 0 01-.75-.75z"/>
+        </svg>
+        <span>Filled (${pct}% Match)</span>
+      `;
+      badge.title = `Matched: "${matchResult.matchedValue}" (${pct}% confidence)`;
+    } else if (matchResult.status === 'SKIPPED_PREFILLED') {
+      badge.classList.add('formflow-pill-prefilled');
+      badge.innerHTML = `
+        <svg class="formflow-icon" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M12.78 4.22a.75.75 0 00-1.06 0L8.25 7.69V2.75a.75.75 0 00-1.5 0v6.5c0 .414.336.75.75.75h6.5a.75.75 0 000-1.5H9.06l3.72-3.72a.75.75 0 000-1.06z"/>
+        </svg>
+        <span>↷ Skipped (Pre-filled)</span>
+      `;
+      badge.title = `Field was already answered: "${matchResult.matchedValue || matchResult.userAnswer}". Preserved by FormFlow.`;
+    } else if (matchResult.status === 'UNMATCHED') {
+      badge.classList.add('formflow-pill-unmatched');
+      badge.innerHTML = `
+        <svg class="formflow-icon" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M3.72 3.72a.75.75 0 011.06 0L8 6.94l3.22-3.22a.75.75 0 111.06 1.06L9.06 8l3.22 3.22a.75.75 0 11-1.06 1.06L8 9.06l-3.22 3.22a.75.75 0 01-1.06-1.06L6.94 8 3.72 4.78a.75.75 0 010-1.06z"/>
+        </svg>
+        <span>Action Needed</span>
+      `;
+      badge.title = `No answer matched with sufficient confidence. Manual input required.`;
+    } else {
+      badge.classList.add('formflow-pill-skipped');
+      badge.innerHTML = `<span>— Skipped</span>`;
+      badge.title = `No answer supplied for this field`;
+    }
+
+    container.appendChild(badge);
+  }
+
+  /**
+   * Executes the autofill plan across all questions on the page
+   */
+    window.FormFlow.Filler = { fillTextInput, clickChoiceElement, fillDropdown, injectVisualIndicator };
 })();
