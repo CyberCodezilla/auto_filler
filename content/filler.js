@@ -60,5 +60,43 @@
   /**
    * Handles opening a Google Form dropdown menu, locating the target option, and selecting it
    */
-    window.FormFlow.Filler = { fillTextInput, clickChoiceElement };
+  async function fillDropdown(trigger, targetValue, targetElement) {
+    if (!trigger) return false;
+
+    // If we already have the element and it's visible, click it directly
+    if (targetElement && targetElement.offsetParent !== null) {
+      targetElement.click();
+      return true;
+    }
+
+    // Step 1: Click the listbox container to trigger the dropdown popup menu
+    trigger.click();
+    await wait(200);
+
+    // Step 2: Google Forms attaches the options menu into a portal or directly under body/listbox
+    const openOptions = Array.from(document.querySelectorAll('div[role="option"]'));
+    const cleanTarget = (targetValue || '').trim().toLowerCase();
+
+    // Try finding option by data-value or text
+    let targetOption = openOptions.find(opt => {
+      const val = (opt.getAttribute('data-value') || '').trim().toLowerCase();
+      const txt = (opt.innerText || '').trim().toLowerCase();
+      return val === cleanTarget || txt === cleanTarget || txt.includes(cleanTarget);
+    });
+
+    if (targetOption) {
+      targetOption.click();
+      await wait(100);
+      return true;
+    } else {
+      // Close dropdown by pressing Escape or clicking trigger
+      trigger.click();
+      return false;
+    }
+  }
+
+  /**
+   * Injects or updates an in-page visual indicator pill badge on the question card
+   */
+    window.FormFlow.Filler = { fillTextInput, clickChoiceElement, fillDropdown };
 })();
