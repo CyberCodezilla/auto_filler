@@ -45,5 +45,20 @@
   /**
    * Clicks a radio or checkbox element safely
    */
-    window.FormFlow.Filler = { fillTextInput };
+  function clickChoiceElement(el) {
+    if (!el) return;
+
+    el.focus();
+    el.click();
+
+    // Additional synthetic events to ensure listeners fire
+    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  /**
+   * Handles opening a Google Form dropdown menu, locating the target option, and selecting it
+   */
+    window.FormFlow.Filler = { fillTextInput, clickChoiceElement };
 })();
