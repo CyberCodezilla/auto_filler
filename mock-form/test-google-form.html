@@ -495,4 +495,172 @@
       </div>
     </div>
 
-    </div></body></html>
+    <!-- Question 6: Radio with letter prefix (Testing Tier 2/3 matching) -->
+    <div role="listitem" class="question-card">
+      <div class="question-header">
+        <div role="heading" aria-level="2" class="question-title">
+          Which standard Wi-Fi frequency is most susceptible to microwave interference?<span class="required-asterisk">*</span>
+        </div>
+      </div>
+      <div class="options-group">
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="a) 5.0 GHz" class="gf-radio"></div>
+          <span class="option-text">a) 5.0 GHz</span>
+        </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="b) 2.4 GHz" class="gf-radio"></div>
+          <span class="option-text">b) 2.4 GHz</span>
+        </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="c) 60 GHz" class="gf-radio"></div>
+          <span class="option-text">c) 60 GHz</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Question 7: Radio -->
+    <div role="listitem" class="question-card">
+      <div class="question-header">
+        <div role="heading" aria-level="2" class="question-title">
+          Which short-range protocol operates primarily in the 2.4 GHz ISM band?<span class="required-asterisk">*</span>
+        </div>
+      </div>
+      <div class="options-group">
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="Zigbee" class="gf-radio"></div>
+          <span class="option-text">Zigbee</span>
+        </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="Bluetooth" class="gf-radio"></div>
+          <span class="option-text">Bluetooth</span>
+        </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="LTE Band 20" class="gf-radio"></div>
+          <span class="option-text">LTE Band 20</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Question 8: Radio -->
+    <div role="listitem" class="question-card">
+      <div class="question-header">
+        <div role="heading" aria-level="2" class="question-title">
+          Define attenuation in telecommunications:<span class="required-asterisk">*</span>
+        </div>
+      </div>
+      <div class="options-group">
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="Amplification of the carrier wave" class="gf-radio"></div>
+          <span class="option-text">Amplification of the carrier wave</span>
+        </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="Reduction in signal power during propagation" class="gf-radio"></div>
+          <span class="option-text">Reduction in signal power during propagation</span>
+        </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="Multipath fading correction" class="gf-radio"></div>
+          <span class="option-text">Multipath fading correction</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Question 9: Dropdown / Radio (Testing Substring Inclusion) -->
+    <div role="listitem" class="question-card">
+      <div class="question-header">
+        <div role="heading" aria-level="2" class="question-title">
+          Which metric represents Received Signal Strength Indicator?<span class="required-asterisk">*</span>
+        </div>
+      </div>
+      <div class="options-group">
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="SNR (Signal to Noise Ratio)" class="gf-radio"></div>
+          <span class="option-text">SNR (Signal to Noise Ratio)</span>
+        </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="RSSI (Received Signal Strength Indicator)" class="gf-radio"></div>
+          <span class="option-text">RSSI (Received Signal Strength Indicator)</span>
+        </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="BER (Bit Error Rate)" class="gf-radio"></div>
+          <span class="option-text">BER (Bit Error Rate)</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Question 10: Radio / Paragraph -->
+    <div role="listitem" class="question-card">
+      <div class="question-header">
+        <div role="heading" aria-level="2" class="question-title">
+          What is the definition of cellular handover?<span class="required-asterisk">*</span>
+        </div>
+      </div>
+      <div class="options-group">
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="Modulating high-frequency carriers" class="gf-radio"></div>
+          <span class="option-text">Modulating high-frequency carriers</span>
+        </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="Transferring an ongoing connection from one cell to another" class="gf-radio"></div>
+          <span class="option-text">Transferring an ongoing connection from one cell to another</span>
+        </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="Assigning new IP addresses to routers" class="gf-radio"></div>
+          <span class="option-text">Assigning new IP addresses to routers</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Actions -->
+    <div class="form-actions">
+      <button class="submit-btn" id="submitBtn">Submit</button>
+    </div>
+  </div>
+
+  <!-- Interactive script mimicking Google Forms radio/checkbox state changes -->
+  <script>
+    document.querySelectorAll('.option-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        const radio = item.querySelector('.gf-radio');
+        const checkbox = item.querySelector('.gf-checkbox');
+
+        if (radio) {
+          // Deselect sibling radios in same question
+          const card = item.closest('.question-card');
+          card.querySelectorAll('.gf-radio').forEach(r => r.setAttribute('aria-checked', 'false'));
+          radio.setAttribute('aria-checked', 'true');
+        } else if (checkbox) {
+          const current = checkbox.getAttribute('aria-checked') === 'true';
+          checkbox.setAttribute('aria-checked', current ? 'false' : 'true');
+        }
+      });
+    });
+
+    // Wire Interactive Demo Runner
+    const PRD_SAMPLE_ANSWERS = [
+      'Radio frequency band',
+      'To carry the signal from transmitter to receiver',
+      'Increased spectrum efficiency',
+      'Network name',
+      'It generally decreases',
+      '2.4 GHz',
+      'Bluetooth',
+      'Reduction in signal power during propagation',
+      'RSSI',
+      'Transferring an ongoing connection from one cell to another'
+    ];
+
+    document.getElementById('demoRunBtn')?.addEventListener('click', async () => {
+      const questions = window.FormFlow.Scraper.scrapeFormQuestions();
+      const plan = window.FormFlow.Matcher.matchSequential(questions, PRD_SAMPLE_ANSWERS, true, true);
+      const result = await window.FormFlow.Filler.executeAutofill(questions, plan);
+      console.log('[FormFlow Demo] Autofill Result:', result);
+      alert(`Autofill Complete!\n\nTotal Questions: ${result.totalQuestions}\nQuiz Questions Filled: ${result.filledCount} / 10\nPre-filled Skipped: ${result.prefilledCount} (Name, Email, Roll No untouched)\nExact Matches: ${result.exactCount}\nFuzzy Matches: ${result.fuzzyCount}`);
+    });
+
+    document.getElementById('demoUndoBtn')?.addEventListener('click', () => {
+      window.FormFlow.Filler.undoAutofill();
+      alert('Autofill undone. All inputs reverted to initial state.');
+    });
+  </script>
+</body>
+</html>
