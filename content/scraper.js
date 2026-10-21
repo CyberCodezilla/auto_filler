@@ -183,9 +183,70 @@
         });
       }
 
-            if (type !== 'unknown') questions.push({ id: qId, index, title, type, options, inputElement, container });
+      // 3. Determine if question is already answered by user
+      let isAlreadyFilled = false;
+      let currentValue = '';
+
+      if (type === 'text' || type === 'textarea') {
+        const val = (inputElement && typeof inputElement.value === 'string') ? inputElement.value.trim() : '';
+        isAlreadyFilled = val.length > 0;
+        currentValue = val;
+      } else if (type === 'radio') {
+        const checked = options.find(opt => opt.isChecked);
+        isAlreadyFilled = !!checked;
+        currentValue = checked ? checked.text : '';
+      } else if (type === 'checkbox') {
+        const checkedList = options.filter(opt => opt.isChecked);
+        isAlreadyFilled = checkedList.length > 0;
+        currentValue = checkedList.map(opt => opt.text).join(', ');
+      } else if (type === 'dropdown') {
+        const selectedOption = listbox ? listbox.querySelector('div[role="option"][aria-selected="true"]') : null;
+        const optVal = selectedOption ? (selectedOption.getAttribute('data-value') || selectedOption.innerText || '').trim() : '';
+        const isPlaceholder = !optVal || optVal.toLowerCase() === 'choose' || optVal.toLowerCase() === 'select';
+        isAlreadyFilled = !!selectedOption && !isPlaceholder;
+        currentValue = isAlreadyFilled ? (getOptionLabel(selectedOption) || optVal) : '';
+      } else if (type === 'grid') {
+        const filledRows = [];
+        options.forEach(row => {
+          const checked = (row.radios || []).find(r => r.element.getAttribute('aria-checked') === 'true');
+          if (checked) {
+            filledRows.push(`${row.rowLabel}: ${checked.text}`);
+          }
+        });
+        isAlreadyFilled = filledRows.length > 0;
+        currentValue = filledRows.join('; ');
+      }
+
+      // 4. Identity field heuristic
+      const IDENTITY_REGEX = /^(full\s*name|name|student\s*name|email|e-mail|roll\s*(no|number)|reg(istration)?\s*(no|number|id)|student\s*id|phone|mobile|contact|section|branch|department|semester|class|division|prn|usn)\b/i;
+      const isIdentityField = IDENTITY_REGEX.test(title.trim()) && (type === 'text' || type === 'dropdown');
+
+      // Ignore decorative containers or submit buttons that don't represent real questions
+      if (type !== 'unknown') {
+        questions.push({
+          id: qId,
+          index,
+          title,
+          type,
+          options,
+          inputElement,
+          listbox,
+          container,
+          isRequired,
+          isAlreadyFilled,
+          currentValue,
+          isIdentityField,
+          dataParams
+        });
+      }
     });
+
     return questions;
   }
-  window.FormFlow.Scraper = { extractDataParams, getOptionLabel, scrapeFormQuestions };
+
+  window.FormFlow.Scraper = {
+    scrapeFormQuestions,
+    extractDataParams,
+    getOptionLabel
+  };
 })();
