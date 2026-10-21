@@ -1,2 +1,182 @@
 <!DOCTYPE html>
-<html><head><title>FormFlow</title></head><body></body></html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FormFlow</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Top Bar -->
+    <header class="app-header">
+      <div class="brand">
+        <div class="brand-logo">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <span class="brand-name">FormFlow</span>
+          <span class="brand-tag">PRECISION</span>
+        </div>
+      </div>
+      <div class="header-status" id="connectionBadge">
+        <span class="status-dot"></span>
+        <span class="status-label" id="connectionText">Checking...</span>
+      </div>
+    </header>
+
+    <!-- Navigation Tabs -->
+    <nav class="tab-nav">
+      <button class="tab-btn active" id="tabInputBtn" data-tab="input">
+        <svg class="tab-icon" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M2.5 3A1.5 1.5 0 001 4.5v7A1.5 1.5 0 002.5 13h11a1.5 1.5 0 001.5-1.5v-7A1.5 1.5 0 0013.5 3h-11zm0 1h11a.5.5 0 01.5.5v7a.5.5 0 01-.5.5h-11a.5.5 0 01-.5-.5v-7a.5.5 0 01.5-.5z"/>
+          <path d="M4 6.5a.75.75 0 01.75-.75h6.5a.75.75 0 010 1.5h-6.5A.75.75 0 014 6.5zm0 3a.75.75 0 01.75-.75h4a.75.75 0 010 1.5h-4A.75.75 0 014 9.5z"/>
+        </svg>
+        Input
+      </button>
+      <button class="tab-btn" id="tabReportBtn" data-tab="report">
+        <svg class="tab-icon" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M2 3.5A1.5 1.5 0 013.5 2h9A1.5 1.5 0 0114 3.5v9a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 12.5v-9zM3.5 3a.5.5 0 00-.5.5v9a.5.5 0 00.5.5h9a.5.5 0 00.5-.5v-9a.5.5 0 00-.5-.5h-9z"/>
+          <path d="M4.5 5.5a.75.75 0 01.75-.75h5.5a.75.75 0 010 1.5h-5.5a.75.75 0 01-.75-.75zm0 2.5a.75.75 0 01.75-.75h5.5a.75.75 0 010 1.5h-5.5a.75.75 0 01-.75-.75zm0 2.5a.75.75 0 01.75-.75h3a.75.75 0 010 1.5h-3a.75.75 0 01-.75-.75z"/>
+        </svg>
+        Audit Report
+        <span class="report-badge hidden" id="reportCountBadge">0</span>
+      </button>
+    </nav>
+
+    <!-- TAB 1: INPUT VIEW -->
+    <main class="tab-content active" id="viewInput">
+      <!-- Mode & Controls Bar -->
+      <div class="controls-bar">
+        <div class="mode-toggle-group">
+          <label class="mode-option">
+            <input type="radio" name="matchingMode" value="sequential" checked id="modeSequential">
+            <span class="mode-pill">Sequential (1:1)</span>
+          </label>
+          <label class="mode-option">
+            <input type="radio" name="matchingMode" value="smart_shuffle" id="modeShuffle">
+            <span class="mode-pill">Smart Shuffle</span>
+          </label>
+        </div>
+        <div class="counter-badge" id="linesCounter">0 answers</div>
+      </div>
+
+      <!-- Settings / Options Row -->
+      <div class="options-bar">
+        <label class="checkbox-label" title="Skip questions that already have an answer (preserves Name, Email, Roll No)">
+          <input type="checkbox" id="skipFilledCheck" checked>
+          <span class="custom-checkbox"></span>
+          <span class="checkbox-text">Skip already-filled fields <span class="dim-hint">(Name, Roll No)</span></span>
+        </label>
+      </div>
+
+      <!-- Raw Input Editor -->
+      <div class="editor-container">
+        <div class="editor-header">
+          <span class="editor-title">RAW ANSWERS (PASTE BELOW)</span>
+          <div class="editor-actions">
+            <button class="text-link-btn" id="loadExampleBtn" title="Load sample 10 answers from PRD">Load PRD Sample</button>
+            <span class="divider">•</span>
+            <button class="text-link-btn" id="clearInputBtn">Clear</button>
+          </div>
+        </div>
+        <div class="textarea-wrapper">
+          <textarea
+            id="rawInput"
+            class="code-input"
+            placeholder="Paste raw answer lines here...&#10;1. Radio frequency band&#10;2. To carry the signal from transmitter to receiver&#10;3. Increased spectrum efficiency&#10;...&#10;&#10;Numbers, bullets, and prefixes are auto-stripped."
+            spellcheck="false"
+          ></textarea>
+        </div>
+        <div class="editor-footer">
+          <span class="footer-tip">Press <kbd id="shortcutKbd">Ctrl+Enter</kbd> to execute</span>
+          <span class="engine-tag">Deterministic Engine (No AI)</span>
+        </div>
+      </div>
+
+      <!-- Status / Warning Banner -->
+      <div class="alert-box hidden" id="pageAlert"></div>
+
+      <!-- Action Footer -->
+      <div class="action-footer">
+        <button class="primary-btn" id="executeBtn">
+          <span class="btn-spinner hidden" id="btnSpinner"></span>
+          <svg class="btn-icon" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M3 2.75C3 2.336 3.336 2 3.75 2h8.5c.414 0 .75.336.75.75v10.5a.75.75 0 01-.75.75h-8.5A.75.75 0 013 13.25V2.75zm1.5.75v9h7.5v-9h-7.5z"/>
+            <path d="M5.5 6.25a.75.75 0 01.75-.75h3.5a.75.75 0 010 1.5h-3.5a.75.75 0 01-.75-.75zm0 3a.75.75 0 01.75-.75h2a.75.75 0 010 1.5h-2a.75.75 0 01-.75-.75z"/>
+          </svg>
+          <span id="executeBtnLabel">Fill Form</span>
+        </button>
+      </div>
+    </main>
+
+    <!-- TAB 2: AUDIT REPORT VIEW -->
+    <main class="tab-content" id="viewReport">
+      <!-- Empty state when no fill yet -->
+      <div class="empty-state" id="reportEmptyState">
+        <div class="empty-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <line x1="9" y1="9" x2="15" y2="9"></line>
+            <line x1="9" y1="13" x2="15" y2="13"></line>
+            <line x1="9" y1="17" x2="11" y2="17"></line>
+          </svg>
+        </div>
+        <p class="empty-title">No Execution Audit Yet</p>
+        <p class="empty-desc">Paste your answers in the Input tab and click "Fill Form" to see the itemized match report here.</p>
+        <button class="secondary-btn" id="goToInputBtn">Go to Input</button>
+      </div>
+
+      <!-- Summary metrics card -->
+      <div class="report-summary-card hidden" id="reportSummaryCard">
+        <div class="summary-top">
+          <div class="score-display">
+            <div class="score-number" id="summaryScore">0 / 0</div>
+            <div class="score-label">Questions Filled</div>
+          </div>
+          <div class="score-percent" id="summaryPercent">0%</div>
+        </div>
+        <div class="progress-bar-track">
+          <div class="progress-bar-fill" id="summaryProgressFill" style="width: 0%;"></div>
+        </div>
+        <div class="metric-chips">
+          <span class="chip chip-exact" id="chipExact">Exact: 0</span>
+          <span class="chip chip-fuzzy" id="chipFuzzy">Fuzzy: 0</span>
+          <span class="chip chip-prefilled" id="chipPrefilled">Pre-filled: 0</span>
+          <span class="chip chip-unmatched" id="chipUnmatched">Action Needed: 0</span>
+          <span class="chip chip-skipped" id="chipSkipped">Skipped: 0</span>
+        </div>
+      </div>
+
+      <!-- Itemized Questions List -->
+      <div class="audit-list-container hidden" id="auditListContainer">
+        <div class="audit-list-header">
+          <span>ITEMIZED BREAKDOWN</span>
+          <span class="jump-hint">Click Jump to locate field</span>
+        </div>
+        <div class="audit-items" id="auditItemsList"></div>
+      </div>
+
+      <!-- Audit Report Actions Footer -->
+      <div class="report-actions-bar hidden" id="reportActionsBar">
+        <button class="secondary-btn" id="undoBtn" title="Revert all filled inputs on the page">
+          <svg viewBox="0 0 16 16" fill="currentColor">
+            <path d="M8 2.5a5.5 5.5 0 00-4.8 2.85l-.7-.7A.5.5 0 001.65 5h3a.5.5 0 00.5-.5v-3a.5.5 0 00-.85-.35l-.75.75A6.5 6.5 0 111.5 8a.5.5 0 00-1 0 7.5 7.5 0 107.5-7.5z"/>
+          </svg>
+          Undo Fill
+        </button>
+        <button class="secondary-btn" id="exportLogBtn" title="Export JSON audit summary">
+          <svg viewBox="0 0 16 16" fill="currentColor">
+            <path d="M4.5 14a.75.75 0 00.75.75h5.5a.75.75 0 000-1.5h-5.5A.75.75 0 004.5 14zM8 1a.75.75 0 01.75.75v7.69l2.22-2.22a.75.75 0 111.06 1.06l-3.5 3.5a.75.75 0 01-1.06 0l-3.5-3.5a.75.75 0 111.06-1.06l2.22 2.22V1.75A.75.75 0 018 1z"/>
+          </svg>
+          Export Log
+        </button>
+      </div>
+    </main>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>
