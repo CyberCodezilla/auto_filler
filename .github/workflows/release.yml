@@ -1,0 +1,80 @@
+name: Release FormFlow Extension
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-release:
+    name: Build & Publish Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Run Verification Test Suite
+        run: node tests/test_engine.js
+
+      - name: Build Production Package & ZIP
+        run: |
+          mkdir -p dist release
+          cp -r content popup icons dist/
+          # Ensure hardened manifest
+          node -e '
+            const fs = require("fs");
+            const raw = JSON.parse(fs.readFileSync("manifest.json", "utf8"));
+            const hardened = {
+              ...raw,
+              host_permissions: ["https://docs.google.com/forms/*"],
+              content_scripts: [{
+                matches: ["https://docs.google.com/forms/*"],
+                js: ["content/parser.js", "content/matcher.js", "content/scraper.js", "content/filler.js", "content/content.js"],
+                css: ["content/inject.css"],
+                run_at: "document_idle"
+              }]
+            };
+            fs.writeFileSync("dist/manifest.json", JSON.stringify(hardened, null, 2));
+          '
+          cd dist && zip -r ../release/formflow-v1.0.0.zip ./* && cd ..
+          cp release/formflow-v1.0.0.zip release/formflow-latest.zip
+          echo "ZIP package built:"
+          ls -lh release/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "FormFlow v1.0.0 — Precision Autofill"
+          body: |
+            ## FormFlow — Precision Autofill (v1.0.0)
+            
+            Deterministic, zero-hallucination Chrome Extension for Google Forms autofill with fuzzy matching and audit logs.
+            
+            ### 🚀 Highlights
+            - **Zero-Hallucination Matching:** 3-tier deterministic string matching (Exact, Substring, Sørensen–Dice $\ge 0.80$).
+            - **Skip Already-Filled Questions:** Automatically skips pre-filled student details (`Full Name`, `Email`, `Roll Number`) and protects them on Undo.
+            - **Dual Modes:** Sequential (1:1) mapping & Smart Shuffle (Option Pool) for randomized forms.
+            - **Utilitarian "Anti-AI" UI:** Developer-grade dark aesthetic inspired by Linear and Raycast.
+            - **In-Page Visual Badges:** Injects emerald, amber, and neutral pill badges with smooth jump-to-question navigation.
+            
+            ### 📦 Installation
+            1. Download `formflow-v1.0.0.zip` below.
+            2. Extract the ZIP to a folder.
+            3. Open Google Chrome and go to `chrome://extensions/`.
+            4. Enable **Developer mode** (top right).
+            5. Click **Load unpacked** and select the extracted folder.
+          files: |
+            release/formflow-v1.0.0.zip
+            release/formflow-latest.zip
+          draft: false
+          prerelease: false
