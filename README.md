@@ -205,14 +205,14 @@ FormFlow guarantees **zero hallucinations** by replacing generative AI with a st
 
 ```mermaid
 graph TD
-    A[Raw Answer Line] --> B[Strip Markers: '1. ', 'A) ', '• ']
-    B --> C{Tier 1: Exact Normalized Match?}
-    C -- Yes --> D[Score: 100% Exact Match]
-    C -- No --> E{Tier 2: Substring Inclusion?}
-    E -- Yes --> F[Score: 92% - 98% Substring Match]
-    E -- No --> G{Tier 3: Sørensen–Dice Coefficient >= 0.80?}
-    G -- Yes --> H[Score: Dice Similarity Match]
-    G -- No --> I[UNMATCHED: 'Action Needed' Badge Injected]
+    A["Raw Answer Line"] --> B["Strip Markers: 1., A), bullet, etc."]
+    B --> C{"Tier 1: Exact Normalized Match?"}
+    C -->|Yes| D["Score: 100% Exact Match"]
+    C -->|No| E{"Tier 2: Substring Inclusion?"}
+    E -->|Yes| F["Score: 92% - 98% Substring Match"]
+    E -->|No| G{"Tier 3: Sørensen–Dice Coefficient >= 0.80?"}
+    G -->|Yes| H["Score: Dice Similarity Match"]
+    G -->|No| I["UNMATCHED: Action Needed Badge Injected"]
 ```
 
 1. **Text Normalization:**
