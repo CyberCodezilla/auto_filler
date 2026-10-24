@@ -27,27 +27,47 @@
       </div>
     </header>
 
-    <!-- Navigation Tabs -->
+    <!-- 3-Tab Navigation Bar -->
     <nav class="tab-nav">
       <button class="tab-btn active" id="tabInputBtn" data-tab="input">
         <svg class="tab-icon" viewBox="0 0 16 16" fill="currentColor">
           <path d="M2.5 3A1.5 1.5 0 001 4.5v7A1.5 1.5 0 002.5 13h11a1.5 1.5 0 001.5-1.5v-7A1.5 1.5 0 0013.5 3h-11zm0 1h11a.5.5 0 01.5.5v7a.5.5 0 01-.5.5h-11a.5.5 0 01-.5-.5v-7a.5.5 0 01.5-.5z"/>
           <path d="M4 6.5a.75.75 0 01.75-.75h6.5a.75.75 0 010 1.5h-6.5A.75.75 0 014 6.5zm0 3a.75.75 0 01.75-.75h4a.75.75 0 010 1.5h-4A.75.75 0 014 9.5z"/>
         </svg>
-        Input
+        Fill
       </button>
+
+      <button class="tab-btn" id="tabProfileBtn" data-tab="profile">
+        <svg class="tab-icon" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 8a3 3 0 100-6 3 3 0 000 6zm2-3a2 2 0 11-4 0 2 2 0 014 0zm4 8c0-2.21-3.58-4-6-4s-6 1.79-6 4v1h12v-1zm-1.07 0H3.07C3.59 11.83 5.76 11 8 11s4.41.83 4.93 2z"/>
+        </svg>
+        Profile
+      </button>
+
       <button class="tab-btn" id="tabReportBtn" data-tab="report">
         <svg class="tab-icon" viewBox="0 0 16 16" fill="currentColor">
           <path d="M2 3.5A1.5 1.5 0 013.5 2h9A1.5 1.5 0 0114 3.5v9a1.5 1.5 0 01-1.5 1.5h-9A1.5 1.5 0 012 12.5v-9zM3.5 3a.5.5 0 00-.5.5v9a.5.5 0 00.5.5h9a.5.5 0 00.5-.5v-9a.5.5 0 00-.5-.5h-9z"/>
           <path d="M4.5 5.5a.75.75 0 01.75-.75h5.5a.75.75 0 010 1.5h-5.5a.75.75 0 01-.75-.75zm0 2.5a.75.75 0 01.75-.75h5.5a.75.75 0 010 1.5h-5.5a.75.75 0 01-.75-.75zm0 2.5a.75.75 0 01.75-.75h3a.75.75 0 010 1.5h-3a.75.75 0 01-.75-.75z"/>
         </svg>
-        Audit Report
+        Audit
         <span class="report-badge hidden" id="reportCountBadge">0</span>
       </button>
     </nav>
 
-    <!-- TAB 1: INPUT VIEW -->
+    <!-- TAB 1: FILL VIEW -->
     <main class="tab-content active" id="viewInput">
+      <!-- First-Run Profile Onboarding Banner -->
+      <div class="onboarding-banner hidden" id="profileOnboardingBanner">
+        <div class="banner-content">
+          <span class="banner-icon">👤</span>
+          <div class="banner-text">
+            <strong>Set up Student Profile</strong>
+            <span>Auto-fill Name, Roll No, Div & Branch once.</span>
+          </div>
+        </div>
+        <button class="banner-btn" id="bannerSetupBtn">Set Up</button>
+      </div>
+
       <!-- Mode & Controls Bar -->
       <div class="controls-bar">
         <div class="mode-toggle-group">
@@ -75,7 +95,7 @@
       <!-- Raw Input Editor -->
       <div class="editor-container">
         <div class="editor-header">
-          <span class="editor-title">RAW ANSWERS (PASTE BELOW)</span>
+          <span class="editor-title">RAW QUIZ ANSWERS (PASTE BELOW)</span>
           <div class="editor-actions">
             <button class="text-link-btn" id="loadExampleBtn" title="Load sample 10 answers from PRD">Load PRD Sample</button>
             <span class="divider">•</span>
@@ -86,13 +106,13 @@
           <textarea
             id="rawInput"
             class="code-input"
-            placeholder="Paste raw answer lines here...&#10;1. Radio frequency band&#10;2. To carry the signal from transmitter to receiver&#10;3. Increased spectrum efficiency&#10;...&#10;&#10;Numbers, bullets, and prefixes are auto-stripped."
+            placeholder="Paste raw quiz answer lines here...&#10;1. Radio frequency band&#10;2. To carry the signal from transmitter to receiver&#10;3. Increased spectrum efficiency&#10;...&#10;&#10;Identity fields are resolved first from your Profile."
             spellcheck="false"
           ></textarea>
         </div>
         <div class="editor-footer">
           <span class="footer-tip">Press <kbd id="shortcutKbd">Ctrl+Enter</kbd> to execute</span>
-          <span class="engine-tag">Deterministic Engine (No AI)</span>
+          <span class="engine-tag">2-Pass Engine (No AI)</span>
         </div>
       </div>
 
@@ -107,12 +127,83 @@
             <path d="M3 2.75C3 2.336 3.336 2 3.75 2h8.5c.414 0 .75.336.75.75v10.5a.75.75 0 01-.75.75h-8.5A.75.75 0 013 13.25V2.75zm1.5.75v9h7.5v-9h-7.5z"/>
             <path d="M5.5 6.25a.75.75 0 01.75-.75h3.5a.75.75 0 010 1.5h-3.5a.75.75 0 01-.75-.75zm0 3a.75.75 0 01.75-.75h2a.75.75 0 010 1.5h-2a.75.75 0 01-.75-.75z"/>
           </svg>
-          <span id="executeBtnLabel">Fill Form</span>
+          <span id="executeBtnLabel">Fill Form (Profile + Answers)</span>
         </button>
       </div>
     </main>
 
-    <!-- TAB 2: AUDIT REPORT VIEW -->
+    <!-- TAB 2: PROFILE VIEW -->
+    <main class="tab-content" id="viewProfile">
+      <div class="profile-container">
+        <div class="profile-header-box">
+          <div class="profile-heading">STUDENT PROFILE</div>
+          <div class="profile-subheading">Auto-maps across varied form labels and choice formats.</div>
+        </div>
+
+        <div class="profile-form-grid">
+          <div class="form-group">
+            <label class="form-label" for="profFullName">Full Name <span class="req">*</span></label>
+            <input type="text" id="profFullName" class="form-input" placeholder="e.g. Sahil Suresh Rane">
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="profRollNo">Roll Number <span class="req">*</span></label>
+              <input type="text" id="profRollNo" class="form-input" placeholder="e.g. 42">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profStudentId">PRN / Student ID</label>
+              <input type="text" id="profStudentId" class="form-input" placeholder="e.g. 2021016400012345">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="profEmail">Institute / College Email <span class="req">*</span></label>
+            <input type="email" id="profEmail" class="form-input" placeholder="e.g. student@vcet.edu.in">
+          </div>
+
+          <div class="form-row-2">
+            <div class="form-group">
+              <label class="form-label" for="profYearClass">Class / Year</label>
+              <input type="text" id="profYearClass" class="form-input" placeholder="e.g. TE or 3rd Year">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profDivision">Division / Batch <span class="req">*</span></label>
+              <input type="text" id="profDivision" class="form-input" placeholder="e.g. TE-3 or 3">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="profBranch">Branch / Department <span class="req">*</span></label>
+            <input type="text" id="profBranch" class="form-input" placeholder="e.g. CSE (Data Science) or IT">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="profPhone">Contact Number</label>
+            <input type="tel" id="profPhone" class="form-input" placeholder="e.g. +91 9876543210">
+          </div>
+
+          <div class="profile-automation-bar">
+            <label class="checkbox-label" title="Automatically fill identity fields when opening a Google Form">
+              <input type="checkbox" id="autoFillOnLoadCheck">
+              <span class="custom-checkbox"></span>
+              <span class="checkbox-text">Auto-fill Profile immediately when Google Form opens</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="alert-box hidden" id="profileAlert"></div>
+
+        <div class="profile-actions-bar">
+          <button class="secondary-btn" id="saveProfileBtn">Save Profile</button>
+          <button class="primary-btn btn-indigo" id="fillProfileNowBtn" title="Auto-fill only student identity fields on active form">
+            ⚡ Fill Profile Only Now
+          </button>
+        </div>
+      </div>
+    </main>
+
+    <!-- TAB 3: AUDIT REPORT VIEW -->
     <main class="tab-content" id="viewReport">
       <!-- Empty state when no fill yet -->
       <div class="empty-state" id="reportEmptyState">
@@ -125,8 +216,8 @@
           </svg>
         </div>
         <p class="empty-title">No Execution Audit Yet</p>
-        <p class="empty-desc">Paste your answers in the Input tab and click "Fill Form" to see the itemized match report here.</p>
-        <button class="secondary-btn" id="goToInputBtn">Go to Input</button>
+        <p class="empty-desc">Click "Fill Form" or "Fill Profile Only Now" to see the itemized match report here.</p>
+        <button class="secondary-btn" id="goToInputBtn">Go to Fill</button>
       </div>
 
       <!-- Summary metrics card -->
@@ -142,6 +233,7 @@
           <div class="progress-bar-fill" id="summaryProgressFill" style="width: 0%;"></div>
         </div>
         <div class="metric-chips">
+          <span class="chip chip-profile" id="chipProfile">Profile: 0</span>
           <span class="chip chip-exact" id="chipExact">Exact: 0</span>
           <span class="chip chip-fuzzy" id="chipFuzzy">Fuzzy: 0</span>
           <span class="chip chip-prefilled" id="chipPrefilled">Pre-filled: 0</span>
@@ -161,7 +253,7 @@
 
       <!-- Audit Report Actions Footer -->
       <div class="report-actions-bar hidden" id="reportActionsBar">
-        <button class="secondary-btn" id="undoBtn" title="Revert all filled inputs on the page">
+        <button class="secondary-btn" id="undoBtn" title="Revert quiz inputs while preserving student profile">
           <svg viewBox="0 0 16 16" fill="currentColor">
             <path d="M8 2.5a5.5 5.5 0 00-4.8 2.85l-.7-.7A.5.5 0 001.65 5h3a.5.5 0 00.5-.5v-3a.5.5 0 00-.85-.35l-.75.75A6.5 6.5 0 111.5 8a.5.5 0 00-1 0 7.5 7.5 0 107.5-7.5z"/>
           </svg>

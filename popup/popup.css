@@ -806,6 +806,12 @@ body {
   border: 1px solid var(--accent-amber-border);
 }
 
+.status-badge.profile_filled {
+  background-color: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
 .status-badge.unmatched {
   background-color: var(--accent-crimson-dim);
   color: var(--accent-crimson);
@@ -822,6 +828,167 @@ body {
   background-color: #18181b;
   color: #a1a1aa;
   border: 1px solid #3f3f46;
+}
+
+.chip-profile {
+  background-color: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+}
+
+/* Onboarding Banner */
+.onboarding-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: rgba(99, 102, 241, 0.08);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+  border-radius: 6px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+
+.banner-content {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.banner-icon {
+  font-size: 14px;
+}
+
+.banner-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.banner-text strong {
+  font-size: 11px;
+  color: #c7d2fe;
+}
+
+.banner-text span {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.banner-btn {
+  background: rgba(99, 102, 241, 0.2);
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  color: #a5b4fc;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.banner-btn:hover {
+  background: rgba(99, 102, 241, 0.35);
+  color: #ffffff;
+  border-color: #818cf8;
+}
+
+/* Profile Form View */
+.profile-container {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  height: 100%;
+}
+
+.profile-header-box {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.profile-heading {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  color: #818cf8;
+}
+
+.profile-subheading {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.profile-form-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.form-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.form-label span.req {
+  color: #818cf8;
+}
+
+.form-input {
+  background-color: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.form-input:focus {
+  border-color: #818cf8;
+  background-color: var(--bg-surface-elevated);
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.15);
+}
+
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.profile-automation-bar {
+  padding: 4px 0;
+}
+
+.profile-actions-bar {
+  display: flex;
+  gap: 8px;
+  margin-top: auto;
+  padding-top: 8px;
+}
+
+.btn-indigo {
+  background: #4f46e5;
+  color: #ffffff;
+  border: 1px solid #6366f1;
+}
+
+.btn-indigo:hover {
+  background: #4338ca;
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.4);
 }
 
 .jump-btn {

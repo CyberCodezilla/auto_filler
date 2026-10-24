@@ -105,6 +105,21 @@
   color: #fafafa;
 }
 
+/* Profile Auto-filled (Indigo / Cyan Distinct Pill) */
+.formflow-pill-profile {
+  background: rgba(99, 102, 241, 0.15);
+  color: #818cf8;
+  border: 1px solid rgba(99, 102, 241, 0.45);
+  backdrop-filter: blur(8px);
+}
+
+.formflow-pill-profile:hover {
+  background: rgba(99, 102, 241, 0.28);
+  border-color: rgba(99, 102, 241, 0.75);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+  color: #a5b4fc;
+}
+
 /* Focus / Jump Highlighting Animation */
 .formflow-active-highlight {
   outline: 2px solid #10b981 !important;

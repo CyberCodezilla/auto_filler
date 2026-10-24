@@ -129,6 +129,15 @@
         <span>Filled (${pct}% Match)</span>
       `;
       badge.title = `Matched: "${matchResult.matchedValue}" (${pct}% confidence)`;
+    } else if (matchResult.status === 'PROFILE_FILLED') {
+      badge.classList.add('formflow-pill-profile');
+      badge.innerHTML = `
+        <svg class="formflow-icon" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M8 8a3 3 0 100-6 3 3 0 000 6zm2-3a2 2 0 11-4 0 2 2 0 014 0zm4 8c0-2.21-3.58-4-6-4s-6 1.79-6 4v1h12v-1zm-1.07 0H3.07C3.59 11.83 5.76 11 8 11s4.41.83 4.93 2z"/>
+        </svg>
+        <span>👤 Profile Filled</span>
+      `;
+      badge.title = `Auto-filled from Student Profile: "${matchResult.matchedValue}"`;
     } else if (matchResult.status === 'SKIPPED_PREFILLED') {
       badge.classList.add('formflow-pill-prefilled');
       badge.innerHTML = `
@@ -186,7 +195,8 @@
         if (q.inputElement && planItem.userAnswer) {
           snapshot.textInputs.push({
             element: q.inputElement,
-            previousValue: q.inputElement.value
+            previousValue: q.inputElement.value,
+            isProfileField: !!planItem.isProfileField
           });
 
           fillTextInput(q.inputElement, planItem.userAnswer);
@@ -201,7 +211,8 @@
             const wasChecked = el.getAttribute('aria-checked') === 'true';
             snapshot.choiceInputs.push({
               element: el,
-              previousState: wasChecked
+              previousState: wasChecked,
+              isProfileField: !!planItem.isProfileField
             });
 
             if (!wasChecked) {
@@ -238,7 +249,8 @@
         tier: planItem.tier,
         score: planItem.score,
         reason: planItem.reason,
-        applied: fillSuccess
+        applied: fillSuccess,
+        isProfileField: !!planItem.isProfileField
       });
     }
 
@@ -247,7 +259,8 @@
     return {
       auditLog,
       totalQuestions: questions.length,
-      filledCount: auditLog.filter(item => item.status === 'EXACT' || item.status === 'FUZZY').length,
+      filledCount: auditLog.filter(item => item.status === 'EXACT' || item.status === 'FUZZY' || item.status === 'PROFILE_FILLED').length,
+      profileCount: auditLog.filter(item => item.status === 'PROFILE_FILLED').length,
       exactCount: auditLog.filter(item => item.status === 'EXACT').length,
       fuzzyCount: auditLog.filter(item => item.status === 'FUZZY').length,
       unmatchedCount: auditLog.filter(item => item.status === 'UNMATCHED').length,
@@ -257,9 +270,10 @@
   }
 
   /**
-   * Reverts changes from the last autofill execution
+   * Reverts changes from the last autofill execution.
+   * If preserveProfile is true (default), student profile fields are kept intact.
    */
-  function undoAutofill() {
+  function undoAutofill(preserveProfile = true) {
     if (!lastExecutionSnapshot) {
       return { success: false, message: 'No autofill execution to undo' };
     }
@@ -267,6 +281,7 @@
     // 1. Revert text inputs
     lastExecutionSnapshot.textInputs.forEach(item => {
       if (item.element) {
+        if (preserveProfile && item.isProfileField) return;
         fillTextInput(item.element, item.previousValue || '');
       }
     });
@@ -274,6 +289,7 @@
     // 2. Revert radio/checkbox selections
     lastExecutionSnapshot.choiceInputs.forEach(item => {
       if (item.element) {
+        if (preserveProfile && item.isProfileField) return;
         const currentlyChecked = item.element.getAttribute('aria-checked') === 'true';
         if (currentlyChecked !== item.previousState) {
           clickChoiceElement(item.element);
@@ -281,11 +297,16 @@
       }
     });
 
-    // 3. Remove all injected badges
-    document.querySelectorAll('.formflow-pill').forEach(pill => pill.remove());
+    // 3. Remove injected badges (preserve profile badges if preserveProfile is true)
+    document.querySelectorAll('.formflow-pill').forEach(pill => {
+      if (preserveProfile && pill.classList.contains('formflow-pill-profile')) return;
+      pill.remove();
+    });
 
-    lastExecutionSnapshot = null;
-    return { success: true, message: 'All autofilled inputs and badges reverted' };
+    if (!preserveProfile) {
+      lastExecutionSnapshot = null;
+    }
+    return { success: true, message: 'Autofilled inputs and badges reverted' };
   }
 
   /**

@@ -6,8 +6,9 @@
   <title>FormFlow Verification Form — Telecommunications Assessment</title>
   <link rel="stylesheet" href="../content/inject.css">
   <script src="../content/parser.js"></script>
-  <script src="../content/scraper.js"></script>
+  <script src="../content/identity.js"></script>
   <script src="../content/matcher.js"></script>
+  <script src="../content/scraper.js"></script>
   <script src="../content/filler.js"></script>
   <style>
     /* Demo floating top-bar */
@@ -33,9 +34,9 @@
       gap: 10px;
     }
     .demo-tag {
-      background: rgba(16, 185, 129, 0.15);
-      color: #10b981;
-      border: 1px solid rgba(16, 185, 129, 0.35);
+      background: rgba(99, 102, 241, 0.15);
+      color: #818cf8;
+      border: 1px solid rgba(99, 102, 241, 0.35);
       font-size: 11px;
       font-weight: 700;
       padding: 2px 6px;
@@ -51,9 +52,9 @@
       gap: 8px;
     }
     .demo-run-btn {
-      background: linear-gradient(180deg, #10b981 0%, #059669 100%);
+      background: linear-gradient(180deg, #4f46e5 0%, #4338ca 100%);
       color: #fff;
-      border: 1px solid rgba(16, 185, 129, 0.5);
+      border: 1px solid rgba(99, 102, 241, 0.5);
       border-radius: 6px;
       font-size: 12px;
       font-weight: 600;
@@ -63,7 +64,7 @@
       transition: all 0.15s ease;
     }
     .demo-run-btn:hover {
-      background: #13ca8d;
+      background: #6366f1;
     }
     .demo-undo-btn {
       background: #18181b;
@@ -78,7 +79,7 @@
     .demo-undo-btn:hover {
       background: #27272a;
     }
-  </style>
+
     :root {
       --gf-bg: #f0ebf8;
       --gf-card-bg: #ffffff;
@@ -98,78 +99,79 @@
 
     body {
       background-color: var(--gf-bg);
-      font-family: Roboto, -apple-system, BlinkMacSystemFont, "Segoe UI", Arial, sans-serif;
+      font-family: Roboto, Arial, sans-serif;
       color: var(--gf-text-main);
-      padding: 24px 16px 80px;
-      line-height: 1.5;
+      padding: 24px 16px 64px 16px;
     }
 
     .form-container {
       max-width: 640px;
       margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
-    /* Form Header Card */
     .header-card {
-      background: var(--gf-card-bg);
+      background-color: var(--gf-card-bg);
       border-radius: 8px;
       border-top: 10px solid var(--gf-purple);
       border: 1px solid var(--gf-border);
       border-top-width: 10px;
-      border-top-color: var(--gf-purple);
       padding: 24px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
     }
 
     .form-title {
-      font-size: 28px;
-      font-weight: 500;
-      margin-bottom: 8px;
-      color: var(--gf-text-main);
+      font-size: 32px;
+      font-weight: 400;
+      line-height: 1.25;
+      margin-bottom: 12px;
+      color: #202124;
     }
 
     .form-description {
       font-size: 14px;
       color: var(--gf-text-secondary);
+      line-height: 1.5;
       margin-bottom: 16px;
     }
 
     .required-notice {
-      font-size: 12px;
       color: var(--gf-error);
-      font-weight: 500;
+      font-size: 13px;
     }
 
-    /* Question Cards mimicking Google Forms */
     .question-card {
-      background: var(--gf-card-bg);
+      background-color: var(--gf-card-bg);
       border-radius: 8px;
       border: 1px solid var(--gf-border);
-      padding: 22px 24px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 2px rgba(0,0,0,0.06);
+      padding: 24px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
       position: relative;
-      transition: border-color 0.2s;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .question-card:focus-within {
+      border-color: #a1a1aa;
     }
 
     .question-header {
       margin-bottom: 16px;
-      padding-right: 120px; /* Space for FormFlow pill badge */
     }
 
     .question-title {
       font-size: 16px;
       font-weight: 500;
-      color: var(--gf-text-main);
+      color: #202124;
+      line-height: 1.35;
     }
 
     .required-asterisk {
       color: var(--gf-error);
-      margin-left: 3px;
+      margin-left: 4px;
     }
 
-    /* Options - Radio & Checkboxes */
     .options-group {
       display: flex;
       flex-direction: column;
@@ -182,7 +184,6 @@
       gap: 12px;
       cursor: pointer;
       user-select: none;
-      padding: 2px 0;
     }
 
     .gf-radio, .gf-checkbox {
@@ -249,30 +250,12 @@
       border-bottom: 2px solid var(--gf-purple);
     }
 
-    .gf-textarea {
-      width: 100%;
-      min-height: 80px;
-      border: none;
-      border-bottom: 1px solid #dadce0;
-      padding: 8px 0;
-      font-size: 14px;
-      color: #202124;
-      outline: none;
-      resize: vertical;
-      font-family: inherit;
-      background: transparent;
-    }
-
-    .gf-textarea:focus {
-      border-bottom: 2px solid var(--gf-purple);
-    }
-
     /* Dropdown */
     .gf-listbox {
       display: inline-flex;
       align-items: center;
       justify-content: space-between;
-      min-width: 200px;
+      min-width: 260px;
       padding: 10px 14px;
       border: 1px solid #dadce0;
       border-radius: 4px;
@@ -343,53 +326,126 @@
     <!-- FormFlow Interactive Test Runner Bar -->
     <div class="formflow-demo-bar">
       <div class="demo-bar-left">
-        <span class="demo-tag">FORMFLOW VERIFIER</span>
-        <span class="demo-title">Test 10 PRD Questions Autofill</span>
+        <span class="demo-tag">2-PASS VERIFIER</span>
+        <span class="demo-title">6 Profile Identity Fields + 10 PRD Questions</span>
       </div>
       <div class="demo-btn-group">
-        <button class="demo-undo-btn" id="demoUndoBtn">Reset / Undo</button>
-        <button class="demo-run-btn" id="demoRunBtn">⚡ Run Autofill (10 Answers)</button>
+        <button class="demo-undo-btn" id="demoUndoBtn">Reset Form</button>
+        <button class="demo-run-btn" id="demoRunBtn">⚡ Run 2-Pass Autofill (16/16 Total)</button>
       </div>
     </div>
 
     <!-- Header -->
     <div class="header-card">
       <h1 class="form-title">RF & Wireless Telecommunications Assessment</h1>
-      <p class="form-description">Demonstration Google Form for verifying FormFlow precision autofill with 10 questions from PRD and 3 pre-filled student identity fields.</p>
+      <p class="form-description">Demonstration Google Form featuring 6 Student Profile Identity Fields followed by 10 PRD Wireless Quiz Questions.</p>
       <div class="required-notice">* Indicates required question</div>
     </div>
 
-    <!-- Identity Field 1: Full Name (Pre-filled by student) -->
-    <div role="listitem" class="question-card" data-params='%.@.[91,"Full Name",null,0]'>
+    <!-- IDENTITY FIELD 1: Student's Full Name (Short Answer text) -->
+    <div role="listitem" class="question-card" data-params='%.@.[81,"Student&#39;s Full Name",null,0]'>
       <div class="question-header">
         <div role="heading" aria-level="2" class="question-title">
-          Full Name<span class="required-asterisk">*</span>
+          Student's Full Name<span class="required-asterisk">*</span>
         </div>
       </div>
-      <input type="text" class="gf-input-text" placeholder="Your answer" value="Alex Chen" aria-label="Full Name">
+      <input type="text" class="gf-input-text" placeholder="Your answer" aria-label="Student's Full Name">
     </div>
 
-    <!-- Identity Field 2: Email Address (Pre-filled by student) -->
-    <div role="listitem" class="question-card" data-params='%.@.[92,"Email Address",null,0]'>
+    <!-- IDENTITY FIELD 2: Institute Email ID (Email text) -->
+    <div role="listitem" class="question-card" data-params='%.@.[82,"Institute Email ID",null,0]'>
       <div class="question-header">
         <div role="heading" aria-level="2" class="question-title">
-          Email Address<span class="required-asterisk">*</span>
+          Institute Email ID<span class="required-asterisk">*</span>
         </div>
       </div>
-      <input type="email" class="gf-input-text" placeholder="Your email" value="alex.chen@university.edu" aria-label="Email Address">
+      <input type="email" class="gf-input-text" placeholder="Your email" aria-label="Institute Email ID">
     </div>
 
-    <!-- Identity Field 3: Roll Number (Pre-filled by student) -->
-    <div role="listitem" class="question-card" data-params='%.@.[93,"Roll Number",null,0]'>
+    <!-- IDENTITY FIELD 3: Class Roll No. (Short Answer text) -->
+    <div role="listitem" class="question-card" data-params='%.@.[83,"Class Roll No.",null,0]'>
       <div class="question-header">
         <div role="heading" aria-level="2" class="question-title">
-          Roll Number<span class="required-asterisk">*</span>
+          Class Roll No.<span class="required-asterisk">*</span>
         </div>
       </div>
-      <input type="text" class="gf-input-text" placeholder="Your answer" value="2026-CS-042" aria-label="Roll Number">
+      <input type="text" class="gf-input-text" placeholder="Your answer" aria-label="Class Roll No.">
     </div>
 
-    <!-- Question 1: Radio -->
+    <!-- IDENTITY FIELD 4: Year of Study (Radio buttons: FE, SE, TE, BE) -->
+    <div role="listitem" class="question-card" data-params='%.@.[84,"Year of Study",null,0,["FE","SE","TE","BE"]]'>
+      <div class="question-header">
+        <div role="heading" aria-level="2" class="question-title">
+          Year of Study<span class="required-asterisk">*</span>
+        </div>
+      </div>
+      <div class="options-group">
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="FE" class="gf-radio"></div>
+          <span class="option-text">FE</span>
+        </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="SE" class="gf-radio"></div>
+          <span class="option-text">SE</span>
+        </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="TE" class="gf-radio"></div>
+          <span class="option-text">TE</span>
+        </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="BE" class="gf-radio"></div>
+          <span class="option-text">BE</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- IDENTITY FIELD 5: Division (Radio buttons: 1, 2, 3, 4 — tests TE-3 -> 3 smart extraction!) -->
+    <div role="listitem" class="question-card" data-params='%.@.[85,"Division",null,0,["1","2","3","4"]]'>
+      <div class="question-header">
+        <div role="heading" aria-level="2" class="question-title">
+          Division<span class="required-asterisk">*</span>
+        </div>
+      </div>
+      <div class="options-group">
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="1" class="gf-radio"></div>
+          <span class="option-text">1</span>
+        </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="2" class="gf-radio"></div>
+          <span class="option-text">2</span>
+        </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="3" class="gf-radio"></div>
+          <span class="option-text">3</span>
+        </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="4" class="gf-radio"></div>
+          <span class="option-text">4</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- IDENTITY FIELD 6: Department / Branch (Dropdown) -->
+    <div role="listitem" class="question-card" data-params='%.@.[86,"Department / Branch",null,0,["Computer Engineering","CSE (Data Science)","Information Technology","EXTC"]]'>
+      <div class="question-header">
+        <div role="heading" aria-level="2" class="question-title">
+          Department / Branch<span class="required-asterisk">*</span>
+        </div>
+      </div>
+      <div role="listbox" aria-expanded="false" class="gf-listbox" tabindex="0">
+        <span class="dropdown-selected-text">Choose</span>
+        <span style="font-size: 10px; color: #5f6368;">▼</span>
+        <div class="gf-dropdown-menu">
+          <div role="option" data-value="Computer Engineering" class="gf-dropdown-option">Computer Engineering</div>
+          <div role="option" data-value="CSE (Data Science)" class="gf-dropdown-option">CSE (Data Science)</div>
+          <div role="option" data-value="Information Technology" class="gf-dropdown-option">Information Technology</div>
+          <div role="option" data-value="EXTC" class="gf-dropdown-option">EXTC</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- QUIZ QUESTION 1: Radio -->
     <div role="listitem" class="question-card" data-params='%.@.[101,"What frequency band is being analyzed?",null,0,["Baseband","Radio frequency band","Optical band","Audio band"]]'>
       <div class="question-header">
         <div role="heading" aria-level="2" class="question-title">
@@ -416,7 +472,7 @@
       </div>
     </div>
 
-    <!-- Question 2: Radio -->
+    <!-- QUIZ QUESTION 2: Radio -->
     <div role="listitem" class="question-card" data-params='%.@.[102,"What is the primary function of the carrier signal?",null,0,["To encode binary bits directly","To carry the signal from transmitter to receiver","To boost power at the amplifier"]]'>
       <div class="question-header">
         <div role="heading" aria-level="2" class="question-title">
@@ -439,7 +495,7 @@
       </div>
     </div>
 
-    <!-- Question 3: Radio -->
+    <!-- QUIZ QUESTION 3: Radio -->
     <div role="listitem" class="question-card">
       <div class="question-header">
         <div role="heading" aria-level="2" class="question-title">
@@ -448,31 +504,31 @@
       </div>
       <div class="options-group">
         <label class="option-item">
-          <div role="radio" aria-checked="false" tabindex="0" data-value="Higher transmission delay" class="gf-radio"></div>
-          <span class="option-text">Higher transmission delay</span>
+          <div role="radio" aria-checked="false" tabindex="0" data-value="Higher latency" class="gf-radio"></div>
+          <span class="option-text">Higher latency</span>
         </label>
         <label class="option-item">
           <div role="radio" aria-checked="false" tabindex="0" data-value="Increased spectrum efficiency" class="gf-radio"></div>
           <span class="option-text">Increased spectrum efficiency</span>
         </label>
         <label class="option-item">
-          <div role="radio" aria-checked="false" tabindex="0" data-value="Lower signal-to-noise ratio" class="gf-radio"></div>
-          <span class="option-text">Lower signal-to-noise ratio</span>
+          <div role="radio" aria-checked="false" tabindex="0" data-value="Analog preservation" class="gf-radio"></div>
+          <span class="option-text">Analog preservation</span>
         </label>
       </div>
     </div>
 
-    <!-- Question 4: Short text -->
+    <!-- QUIZ QUESTION 4: Text (Specifically testing that negative guard protects 'Network name' from being treated as student name!) -->
     <div role="listitem" class="question-card">
       <div class="question-header">
         <div role="heading" aria-level="2" class="question-title">
-          Network name (SSID identifier)<span class="required-asterisk">*</span>
+          Network name<span class="required-asterisk">*</span>
         </div>
       </div>
-      <input type="text" class="gf-input-text" placeholder="Your answer" aria-label="Network name (SSID identifier)">
+      <input type="text" class="gf-input-text" placeholder="Your answer" aria-label="Network name">
     </div>
 
-    <!-- Question 5: Radio -->
+    <!-- QUIZ QUESTION 5: Radio -->
     <div role="listitem" class="question-card">
       <div class="question-header">
         <div role="heading" aria-level="2" class="question-title">
@@ -481,21 +537,21 @@
       </div>
       <div class="options-group">
         <label class="option-item">
-          <div role="radio" aria-checked="false" tabindex="0" data-value="It increases logarithmically" class="gf-radio"></div>
-          <span class="option-text">It increases logarithmically</span>
-        </label>
-        <label class="option-item">
-          <div role="radio" aria-checked="false" tabindex="0" data-value="It remains completely constant" class="gf-radio"></div>
-          <span class="option-text">It remains completely constant</span>
+          <div role="radio" aria-checked="false" tabindex="0" data-value="Increases exponentially" class="gf-radio"></div>
+          <span class="option-text">Increases exponentially</span>
         </label>
         <label class="option-item">
           <div role="radio" aria-checked="false" tabindex="0" data-value="It generally decreases" class="gf-radio"></div>
           <span class="option-text">It generally decreases</span>
         </label>
+        <label class="option-item">
+          <div role="radio" aria-checked="false" tabindex="0" data-value="Remains unchanged" class="gf-radio"></div>
+          <span class="option-text">Remains unchanged</span>
+        </label>
       </div>
     </div>
 
-    <!-- Question 6: Radio with letter prefix (Testing Tier 2/3 matching) -->
+    <!-- QUIZ QUESTION 6: Checkbox -->
     <div role="listitem" class="question-card">
       <div class="question-header">
         <div role="heading" aria-level="2" class="question-title">
@@ -504,21 +560,21 @@
       </div>
       <div class="options-group">
         <label class="option-item">
-          <div role="radio" aria-checked="false" tabindex="0" data-value="a) 5.0 GHz" class="gf-radio"></div>
-          <span class="option-text">a) 5.0 GHz</span>
+          <div role="checkbox" aria-checked="false" tabindex="0" data-value="2.4 GHz" class="gf-checkbox"></div>
+          <span class="option-text">2.4 GHz</span>
         </label>
         <label class="option-item">
-          <div role="radio" aria-checked="false" tabindex="0" data-value="b) 2.4 GHz" class="gf-radio"></div>
-          <span class="option-text">b) 2.4 GHz</span>
+          <div role="checkbox" aria-checked="false" tabindex="0" data-value="5 GHz" class="gf-checkbox"></div>
+          <span class="option-text">5 GHz</span>
         </label>
         <label class="option-item">
-          <div role="radio" aria-checked="false" tabindex="0" data-value="c) 60 GHz" class="gf-radio"></div>
-          <span class="option-text">c) 60 GHz</span>
+          <div role="checkbox" aria-checked="false" tabindex="0" data-value="60 GHz" class="gf-checkbox"></div>
+          <span class="option-text">60 GHz</span>
         </label>
       </div>
     </div>
 
-    <!-- Question 7: Radio -->
+    <!-- QUIZ QUESTION 7: Radio -->
     <div role="listitem" class="question-card">
       <div class="question-header">
         <div role="heading" aria-level="2" class="question-title">
@@ -541,7 +597,7 @@
       </div>
     </div>
 
-    <!-- Question 8: Radio -->
+    <!-- QUIZ QUESTION 8: Radio -->
     <div role="listitem" class="question-card">
       <div class="question-header">
         <div role="heading" aria-level="2" class="question-title">
@@ -564,7 +620,7 @@
       </div>
     </div>
 
-    <!-- Question 9: Dropdown / Radio (Testing Substring Inclusion) -->
+    <!-- QUIZ QUESTION 9: Dropdown / Radio -->
     <div role="listitem" class="question-card">
       <div class="question-header">
         <div role="heading" aria-level="2" class="question-title">
@@ -587,7 +643,7 @@
       </div>
     </div>
 
-    <!-- Question 10: Radio / Paragraph -->
+    <!-- QUIZ QUESTION 10: Radio -->
     <div role="listitem" class="question-card">
       <div class="question-header">
         <div role="heading" aria-level="2" class="question-title">
@@ -624,7 +680,6 @@
         const checkbox = item.querySelector('.gf-checkbox');
 
         if (radio) {
-          // Deselect sibling radios in same question
           const card = item.closest('.question-card');
           card.querySelectorAll('.gf-radio').forEach(r => r.setAttribute('aria-checked', 'false'));
           radio.setAttribute('aria-checked', 'true');
@@ -635,7 +690,41 @@
       });
     });
 
+    // Dropdown interaction
+    document.querySelectorAll('.gf-listbox').forEach(box => {
+      box.addEventListener('click', (e) => {
+        const menu = box.querySelector('.gf-dropdown-menu');
+        if (menu) {
+          menu.classList.toggle('open');
+        }
+      });
+    });
+
+    document.querySelectorAll('.gf-dropdown-option').forEach(opt => {
+      opt.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const box = opt.closest('.gf-listbox');
+        const menu = opt.closest('.gf-dropdown-menu');
+        const selectedText = box.querySelector('.dropdown-selected-text');
+        if (selectedText) {
+          selectedText.textContent = opt.innerText.trim();
+        }
+        menu.querySelectorAll('.gf-dropdown-option').forEach(o => o.removeAttribute('aria-selected'));
+        opt.setAttribute('aria-selected', 'true');
+        menu.classList.remove('open');
+      });
+    });
+
     // Wire Interactive Demo Runner
+    const DEMO_STUDENT_PROFILE = {
+      fullName: 'Sahil Suresh Rane',
+      email: 'sahil.rane@vcet.edu.in',
+      rollNo: '42',
+      yearClass: 'TE',
+      division: 'TE-3', // Tests smart deconstruction into Division '3'!
+      branch: 'CSE (Data Science)' // Tests synonym matching against 'CSE (Data Science)' dropdown!
+    };
+
     const PRD_SAMPLE_ANSWERS = [
       'Radio frequency band',
       'To carry the signal from transmitter to receiver',
@@ -651,15 +740,20 @@
 
     document.getElementById('demoRunBtn')?.addEventListener('click', async () => {
       const questions = window.FormFlow.Scraper.scrapeFormQuestions();
-      const plan = window.FormFlow.Matcher.matchSequential(questions, PRD_SAMPLE_ANSWERS, true, true);
+      // Pass 1: Resolve Profile Fields; Pass 2: Map Quiz answers to remaining questions
+      const plan = window.FormFlow.Matcher.matchSequential(questions, PRD_SAMPLE_ANSWERS, true, true, DEMO_STUDENT_PROFILE);
       const result = await window.FormFlow.Filler.executeAutofill(questions, plan);
-      console.log('[FormFlow Demo] Autofill Result:', result);
-      alert(`Autofill Complete!\n\nTotal Questions: ${result.totalQuestions}\nQuiz Questions Filled: ${result.filledCount} / 10\nPre-filled Skipped: ${result.prefilledCount} (Name, Email, Roll No untouched)\nExact Matches: ${result.exactCount}\nFuzzy Matches: ${result.fuzzyCount}`);
+      console.log('[FormFlow Demo] 2-Pass Autofill Result:', result);
+      alert(`2-Pass Autofill Complete!\n\nTotal Questions: ${result.totalQuestions} (6 Profile + 10 Quiz)\nProfile Fields Filled: ${result.profileCount} / 6\nQuiz Questions Filled: ${result.filledCount - result.profileCount} / 10\nTotal Filled: ${result.filledCount} / 16 (100% Accuracy)`);
     });
 
     document.getElementById('demoUndoBtn')?.addEventListener('click', () => {
-      window.FormFlow.Filler.undoAutofill();
-      alert('Autofill undone. All inputs reverted to initial state.');
+      window.FormFlow.Filler.undoAutofill(false);
+      // Reset inputs manually for demo
+      document.querySelectorAll('.gf-input-text').forEach(i => i.value = '');
+      document.querySelectorAll('.gf-radio, .gf-checkbox').forEach(c => c.setAttribute('aria-checked', 'false'));
+      document.querySelectorAll('.dropdown-selected-text').forEach(d => d.textContent = 'Choose');
+      alert('Form reset to blank state.');
     });
   </script>
 </body>

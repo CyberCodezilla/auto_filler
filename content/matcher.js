@@ -12,16 +12,17 @@
 
   /**
    * Plans the autofill actions according to Mode 1 (Sequential Mapping)
-   * If skipFilledQuestions is true, questions already answered by the user are skipped
-   * without consuming answer lines.
+   * If skipFilledQuestions is true, questions already answered by the user are skipped.
+   * If studentProfile is provided, identity fields are resolved first (Pass 1),
+   * leaving userAnswers[0] to strictly map to the first unanswered quiz question (Pass 2).
    */
-  function matchSequential(questions, userAnswers, allowGlobalFallback = false, skipFilledQuestions = true) {
+  function matchSequential(questions, userAnswers, allowGlobalFallback = false, skipFilledQuestions = true, studentProfile = null) {
     const results = new Array(questions.length);
     const unmatchedAnswers = [];
     const matchedQuestionIndices = new Set();
     let answerIndex = 0;
 
-    // Step 1: Pre-populate skipped questions if skipFilledQuestions is enabled
+    // Pass 1: Resolve Pre-filled fields & Student Profile Identity Fields
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       if (skipFilledQuestions && q.isAlreadyFilled) {
@@ -39,6 +40,34 @@
           reason: 'Skipped: Field already filled by user'
         };
         matchedQuestionIndices.add(i);
+      } else if (studentProfile) {
+        const idModule = window.FormFlow.Identity;
+        if (idModule) {
+          const classification = idModule.classifyIdentityQuestion(q);
+          if (classification.isIdentity) {
+            const resolved = idModule.resolveIdentityAnswer(classification.category, studentProfile, q);
+            if (resolved) {
+              results[i] = {
+                questionIndex: q.index !== undefined ? q.index : i,
+                questionId: q.id,
+                questionTitle: q.title,
+                questionType: q.type,
+                userAnswer: resolved.matchedValue,
+                matchedValue: resolved.matchedValue,
+                targetElements: resolved.targetOption ? [resolved.targetOption.element] : (q.inputElement ? [q.inputElement] : []),
+                dropdownTrigger: q.type === 'dropdown' ? (resolved.targetOption?.trigger || q.listbox) : null,
+                dropdownOption: q.type === 'dropdown' ? resolved.targetOption : null,
+                score: resolved.confidence,
+                tier: 'PROFILE',
+                status: 'PROFILE_FILLED',
+                isProfileField: true,
+                profileCategory: resolved.category,
+                reason: resolved.reason
+              };
+              matchedQuestionIndices.add(i);
+            }
+          }
+        }
       }
     }
 
@@ -291,13 +320,14 @@
   /**
    * Plans autofill actions according to Mode 2 (Global Option-Pool / Smart Shuffle)
    * Designed for randomized questions. Skips pre-filled fields when skipFilledQuestions is true.
+   * If studentProfile is provided, identity fields are resolved first (Pass 1).
    */
-  function matchSmartShuffle(questions, userAnswers, skipFilledQuestions = true) {
+  function matchSmartShuffle(questions, userAnswers, skipFilledQuestions = true, studentProfile = null) {
     const results = new Array(questions.length);
     const usedAnswerIndices = new Set();
     const resolvedQuestionIndices = new Set();
 
-    // Step 0: Pre-populate skipped questions if skipFilledQuestions is enabled
+    // Pass 1: Resolve Pre-filled fields & Student Profile Identity Fields
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       if (skipFilledQuestions && q.isAlreadyFilled) {
@@ -315,6 +345,34 @@
           reason: 'Skipped: Field already filled by user'
         };
         resolvedQuestionIndices.add(i);
+      } else if (studentProfile) {
+        const idModule = window.FormFlow.Identity;
+        if (idModule) {
+          const classification = idModule.classifyIdentityQuestion(q);
+          if (classification.isIdentity) {
+            const resolved = idModule.resolveIdentityAnswer(classification.category, studentProfile, q);
+            if (resolved) {
+              results[i] = {
+                questionIndex: q.index !== undefined ? q.index : i,
+                questionId: q.id,
+                questionTitle: q.title,
+                questionType: q.type,
+                userAnswer: resolved.matchedValue,
+                matchedValue: resolved.matchedValue,
+                targetElements: resolved.targetOption ? [resolved.targetOption.element] : (q.inputElement ? [q.inputElement] : []),
+                dropdownTrigger: q.type === 'dropdown' ? (resolved.targetOption?.trigger || q.listbox) : null,
+                dropdownOption: q.type === 'dropdown' ? resolved.targetOption : null,
+                score: resolved.confidence,
+                tier: 'PROFILE',
+                status: 'PROFILE_FILLED',
+                isProfileField: true,
+                profileCategory: resolved.category,
+                reason: resolved.reason
+              };
+              resolvedQuestionIndices.add(i);
+            }
+          }
+        }
       }
     }
 
@@ -386,9 +444,67 @@
     return results;
   }
 
+  /**
+   * Plans autofill actions for Student Profile fields ONLY.
+   * Useful for immediate auto-fill on form load or "Fill Profile Only Now".
+   */
+  function matchProfileOnly(questions, studentProfile) {
+    const results = new Array(questions.length);
+    const idModule = window.FormFlow.Identity;
+
+    for (let i = 0; i < questions.length; i++) {
+      const q = questions[i];
+
+      if (idModule && studentProfile) {
+        const classification = idModule.classifyIdentityQuestion(q);
+        if (classification.isIdentity) {
+          const resolved = idModule.resolveIdentityAnswer(classification.category, studentProfile, q);
+          if (resolved) {
+            results[i] = {
+              questionIndex: q.index !== undefined ? q.index : i,
+              questionId: q.id,
+              questionTitle: q.title,
+              questionType: q.type,
+              userAnswer: resolved.matchedValue,
+              matchedValue: resolved.matchedValue,
+              targetElements: resolved.targetOption ? [resolved.targetOption.element] : (q.inputElement ? [q.inputElement] : []),
+              dropdownTrigger: q.type === 'dropdown' ? (resolved.targetOption?.trigger || q.listbox) : null,
+              dropdownOption: q.type === 'dropdown' ? resolved.targetOption : null,
+              score: resolved.confidence,
+              tier: 'PROFILE',
+              status: 'PROFILE_FILLED',
+              isProfileField: true,
+              profileCategory: resolved.category,
+              reason: resolved.reason
+            };
+            continue;
+          }
+        }
+      }
+
+      // Non-profile question
+      results[i] = {
+        questionIndex: q.index !== undefined ? q.index : i,
+        questionId: q.id,
+        questionTitle: q.title,
+        questionType: q.type,
+        userAnswer: '',
+        matchedValue: null,
+        targetElements: [],
+        score: 0,
+        tier: 'NONE',
+        status: 'SKIPPED',
+        reason: 'Skipped during profile-only fill'
+      };
+    }
+
+    return results;
+  }
+
   window.FormFlow.Matcher = {
     matchSequential,
     matchSmartShuffle,
-    matchSingleQuestion
+    matchSingleQuestion,
+    matchProfileOnly
   };
 })();

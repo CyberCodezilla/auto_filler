@@ -96,6 +96,7 @@ const hardenedManifest = {
       ],
       js: [
         "content/parser.js",
+        "content/identity.js",
         "content/matcher.js",
         "content/scraper.js",
         "content/filler.js",
