@@ -107,6 +107,13 @@
           return q.isIdentityField;
         }).length;
 
+        let nptelMenu = null;
+        if (isNptel && window.FormFlow.NptelScraper && window.FormFlow.NptelScraper.scanNptelMenu) {
+          try {
+            nptelMenu = window.FormFlow.NptelScraper.scanNptelMenu();
+          } catch (e) {}
+        }
+
         sendResponse({
           success: true,
           isForm: questions.length > 0,
@@ -115,6 +122,7 @@
           prefilledCount,
           unfilledCount,
           identityCount,
+          nptelMenu,
           questions: questions.map(q => ({
             id: q.id,
             index: q.index,
@@ -139,8 +147,23 @@
           questionCount: 0,
           prefilledCount: 0,
           unfilledCount: 0,
-          identityCount: 0
+          identityCount: 0,
+          nptelMenu: null
         });
+      }
+      return false;
+    }
+
+    if (action === 'SCAN_NPTEL_MENU') {
+      try {
+        if (window.FormFlow.NptelScraper && window.FormFlow.NptelScraper.scanNptelMenu) {
+          const menuInfo = window.FormFlow.NptelScraper.scanNptelMenu();
+          sendResponse({ success: true, ...menuInfo });
+        } else {
+          sendResponse({ success: false, error: 'NPTEL scraper not available' });
+        }
+      } catch (e) {
+        sendResponse({ success: false, error: e.message });
       }
       return false;
     }

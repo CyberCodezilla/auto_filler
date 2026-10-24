@@ -1133,6 +1133,227 @@ body {
   background: #818cf8;
 }
 
+/* NPTEL Menu Bar Quiz Navigator Card */
+.nptel-menu-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  margin-top: 10px;
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.nptel-menu-card:hover {
+  border-color: #3b82f6;
+}
+
+.nptel-menu-header {
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  background: rgba(59, 130, 246, 0.05);
+}
+
+.menu-header-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.menu-icon {
+  font-size: 15px;
+}
+
+.menu-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.menu-card-subtitle {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.menu-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.menu-quiz-badge {
+  font-size: 10px;
+  font-weight: 700;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  padding: 2px 7px;
+  border-radius: 9999px;
+}
+
+.chevron-icon {
+  font-size: 10px;
+  color: var(--text-muted);
+  transition: transform 0.2s ease;
+}
+
+.chevron-icon.collapsed {
+  transform: rotate(-90deg);
+}
+
+.nptel-menu-body {
+  padding: 10px 12px;
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.nptel-menu-body.hidden {
+  display: none;
+}
+
+.menu-status-pill {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 500;
+  background: rgba(39, 39, 42, 0.6);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.menu-status-pill.is-quiz {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.3);
+  color: #34d399;
+}
+
+.menu-status-pill.is-lecture {
+  background: rgba(245, 158, 11, 0.1);
+  border-color: rgba(245, 158, 11, 0.3);
+  color: #fbbf24;
+}
+
+.menu-status-pill.is-document {
+  background: rgba(147, 51, 234, 0.1);
+  border-color: rgba(147, 51, 234, 0.3);
+  color: #c084fc;
+}
+
+.pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #71717a;
+}
+
+.menu-status-pill.is-quiz .pill-dot {
+  background: #10b981;
+}
+
+.menu-status-pill.is-lecture .pill-dot {
+  background: #f59e0b;
+}
+
+.menu-status-pill.is-document .pill-dot {
+  background: #a855f7;
+}
+
+.menu-items-scroll {
+  max-height: 140px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.menu-quiz-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 6px 8px;
+  background: rgba(24, 24, 27, 0.8);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  font-size: 11px;
+}
+
+.menu-quiz-item.active {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.08);
+}
+
+.quiz-item-left {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.quiz-unit-pill {
+  font-size: 9px;
+  font-weight: 700;
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+  padding: 1px 4px;
+  border-radius: 2px;
+  white-space: nowrap;
+}
+
+.quiz-item-title {
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 190px;
+}
+
+.quiz-open-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.quiz-open-btn:hover {
+  background: #1d4ed8;
+}
+
+.quiz-open-btn.active-now {
+  background: #059669;
+  cursor: default;
+}
+
+.menu-empty-hint {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-style: italic;
+  padding: 8px 4px;
+  text-align: center;
+}
+
+.menu-footer-stats {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 10px;
+  color: var(--text-muted);
+  border-top: 1px solid rgba(39, 39, 42, 0.6);
+  padding-top: 6px;
+}
+
 /* Utilities */
 .hidden {
   display: none !important;

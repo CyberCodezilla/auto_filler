@@ -233,6 +233,9 @@
               nptelDetectedBadge.textContent = response.questionCount;
               nptelDetectedBadge.classList.remove('hidden');
             }
+            if (response.nptelMenu) {
+              updateNptelMenuUI(response.nptelMenu);
+            }
           } else {
             let statusText = `Connected (${response.questionCount} Qs`;
             if (response.identityCount > 0) {
@@ -245,6 +248,13 @@
 
             setConnectionState(true, statusText);
           }
+        } else if (response.isNptel && response.nptelMenu) {
+          // On NPTEL course page, but currently viewing a lecture/document (0 quiz questions on current view)
+          switchTab('nptel');
+          setConnectionState(true, 'NPTEL Course');
+          updateNptelMenuUI(response.nptelMenu);
+          activeTabIsForm = false;
+          hideAlert();
         } else {
           setConnectionState(false, 'No questions found');
           showAlert('Page open, but 0 questions detected.', 'warning');
@@ -389,6 +399,32 @@
       nptelExecuteBtn.addEventListener('click', triggerNptelFill);
     }
 
+    // NPTEL Menu Navigator toggle & rescan
+    const nptelMenuToggle = document.getElementById('nptelMenuToggle');
+    const nptelMenuBody = document.getElementById('nptelMenuBody');
+    const nptelMenuChevron = document.getElementById('nptelMenuChevron');
+    const refreshMenuBtn = document.getElementById('refreshMenuBtn');
+
+    if (nptelMenuToggle && nptelMenuBody) {
+      nptelMenuToggle.addEventListener('click', () => {
+        nptelMenuBody.classList.toggle('hidden');
+        if (nptelMenuChevron) {
+          nptelMenuChevron.classList.toggle('collapsed');
+        }
+      });
+    }
+
+    if (refreshMenuBtn) {
+      refreshMenuBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        sendToActiveTab({ action: 'SCAN_NPTEL_MENU' }, (res) => {
+          if (res && res.success) {
+            updateNptelMenuUI(res);
+          }
+        });
+      });
+    }
+
     // Profile actions
     saveProfileBtn.addEventListener('click', () => {
       saveProfileData(true);
@@ -412,6 +448,96 @@
     // Audit Report actions
     undoBtn.addEventListener('click', triggerUndo);
     exportLogBtn.addEventListener('click', exportAuditLog);
+  }
+
+  function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  /**
+   * Updates NPTEL Menu Navigator UI (Quizzes vs Lectures vs Documents)
+   */
+  function updateNptelMenuUI(menuData) {
+    const nptelMenuSubtitle = document.getElementById('nptelMenuSubtitle');
+    const nptelMenuQuizBadge = document.getElementById('nptelMenuQuizBadge');
+    const nptelCurrentStatusPill = document.getElementById('nptelCurrentStatusPill');
+    const nptelCurrentStatusText = document.getElementById('nptelCurrentStatusText');
+    const nptelQuizzesList = document.getElementById('nptelQuizzesList');
+    const nptelStatsText = document.getElementById('nptelStatsText');
+
+    if (!menuData) return;
+
+    const { quizzes = [], lectures = [], documents = [], activeItem, isCurrentPageQuiz, isCurrentPageLecture, isCurrentPageDocument } = menuData;
+
+    if (nptelMenuQuizBadge) {
+      nptelMenuQuizBadge.textContent = `${quizzes.length} Quizzes`;
+    }
+
+    if (nptelStatsText) {
+      nptelStatsText.textContent = `${quizzes.length} Quizzes • ${lectures.length} Lectures • ${documents.length} Docs`;
+    }
+
+    if (nptelCurrentStatusPill && nptelCurrentStatusText) {
+      nptelCurrentStatusPill.className = 'menu-status-pill';
+      if (isCurrentPageQuiz) {
+        nptelCurrentStatusPill.classList.add('is-quiz');
+        nptelCurrentStatusText.textContent = `Active: ${activeItem?.title || 'Quiz / Assessment'}`;
+      } else if (isCurrentPageLecture) {
+        nptelCurrentStatusPill.classList.add('is-lecture');
+        nptelCurrentStatusText.textContent = `Viewing Lecture: ${activeItem?.title || 'Video Lecture'}`;
+      } else if (isCurrentPageDocument) {
+        nptelCurrentStatusPill.classList.add('is-document');
+        nptelCurrentStatusText.textContent = `Viewing Document: ${activeItem?.title || 'Notes / Transcript'}`;
+      } else {
+        nptelCurrentStatusText.textContent = activeItem?.title ? `Current: ${activeItem.title}` : 'Browsing Course Outline';
+      }
+    }
+
+    if (nptelMenuSubtitle) {
+      if (quizzes.length > 0) {
+        nptelMenuSubtitle.textContent = `Found ${quizzes.length} assignments/quizzes in menu bar`;
+      } else {
+        nptelMenuSubtitle.textContent = 'No quizzes found in current menu';
+      }
+    }
+
+    if (nptelQuizzesList) {
+      if (quizzes.length === 0) {
+        nptelQuizzesList.innerHTML = `<div class="menu-empty-hint">No quizzes detected in menu bar.</div>`;
+      } else {
+        nptelQuizzesList.innerHTML = quizzes.map((q) => {
+          const isActive = !!q.isActive;
+          return `
+            <div class="menu-quiz-item ${isActive ? 'active' : ''}">
+              <div class="quiz-item-left">
+                ${q.unitLabel ? `<span class="quiz-unit-pill">${escapeHtml(q.unitLabel)}</span>` : ''}
+                <span class="quiz-item-title" title="${escapeHtml(q.title)}">${escapeHtml(q.title)}</span>
+              </div>
+              <button class="quiz-open-btn ${isActive ? 'active-now' : ''}" data-url="${escapeHtml(q.url)}">
+                ${isActive ? 'Active' : 'Open'}
+              </button>
+            </div>
+          `;
+        }).join('');
+
+        // Wire click handler for quiz navigation
+        nptelQuizzesList.querySelectorAll('.quiz-open-btn:not(.active-now)').forEach(btn => {
+          btn.addEventListener('click', (e) => {
+            const url = e.currentTarget.getAttribute('data-url');
+            if (url && activeTabId) {
+              chrome.tabs.update(activeTabId, { url });
+              window.close();
+            }
+          });
+        });
+      }
+    }
   }
 
   /**

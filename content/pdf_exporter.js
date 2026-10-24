@@ -196,15 +196,28 @@
 
       // Strip inputs, controls, and choice wrappers from promptClone
       promptClone.querySelectorAll(
-        'input, select, textarea, button, .qt-choices, .qt-response, .options, .option-row, .options-container, .gcb-options-row, .gcb-mcq-choice, .option-lbl, ul.qt-choices'
+        'input, select, textarea, button, .qt-choices, .options-list, .qt-response, .answer-input-container, .input-wrapper, .options, .option-row, .options-container, .gcb-options-row, .gcb-mcq-choice, .option-lbl, ul.qt-choices'
       ).forEach(el => el.remove());
 
       let promptHtml = promptClone.innerHTML.trim();
-      const promptText = (promptClone.textContent || '').trim();
+      let promptText = (promptClone.textContent || '').trim();
 
-      // If prompt HTML has no text and no images, fallback cleanly to question title
+      // If promptClone was emptied by stripping or had no text, check q.title or container
       if (!promptText && !promptClone.querySelector('img')) {
-        promptHtml = `<p style="font-weight: 600; margin: 0 0 6px 0; color: #18181b;">${escapeHtml(q.title)}</p>`;
+        let bestTitle = (q.title || '').trim();
+        if (!bestTitle || /^Question\s*\d+$/i.test(bestTitle)) {
+          // Try scraping prompt text directly from q.container
+          if (window.FormFlow.NptelScraper?.cleanPromptText) {
+            const containerText = window.FormFlow.NptelScraper.cleanPromptText(q.container);
+            if (containerText && containerText.length > 2) {
+              bestTitle = containerText;
+            }
+          }
+        }
+        if (!bestTitle) {
+          bestTitle = `Question ${qNum}`;
+        }
+        promptHtml = `<p style="font-weight: 600; margin: 0 0 6px 0; color: #18181b; font-size: 13.5px;">${escapeHtml(bestTitle)}</p>`;
       }
 
       // Check if container has any diagrams or images not yet present in promptHtml

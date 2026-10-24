@@ -176,6 +176,39 @@
         </div>
       </div>
 
+      <!-- Course Menu Bar Quiz Navigator Card -->
+      <div class="nptel-menu-card" id="nptelMenuCard">
+        <div class="nptel-menu-header" id="nptelMenuToggle">
+          <div class="menu-header-left">
+            <span class="menu-icon">🧭</span>
+            <div>
+              <div class="menu-card-title">Course Menu Quiz Navigator</div>
+              <div class="menu-card-subtitle" id="nptelMenuSubtitle">Scanning course outline for quizzes...</div>
+            </div>
+          </div>
+          <div class="menu-header-right">
+            <span class="menu-quiz-badge" id="nptelMenuQuizBadge">0 Quizzes</span>
+            <span class="chevron-icon" id="nptelMenuChevron">▼</span>
+          </div>
+        </div>
+        <div class="nptel-menu-body" id="nptelMenuBody">
+          <!-- Active Page Banner -->
+          <div class="menu-status-pill" id="nptelCurrentStatusPill">
+            <span class="pill-dot" id="nptelCurrentDot"></span>
+            <span id="nptelCurrentStatusText">Checking active page...</span>
+          </div>
+          <!-- Quizzes List -->
+          <div class="menu-items-scroll" id="nptelQuizzesList">
+            <div class="menu-empty-hint">Open any NPTEL course to detect quizzes in the menu bar.</div>
+          </div>
+          <!-- Menu Bar Stats Summary -->
+          <div class="menu-footer-stats">
+            <span id="nptelStatsText">0 Quizzes • 0 Lectures • 0 Documents</span>
+            <button class="text-link-btn" id="refreshMenuBtn" title="Rescan course menu bar">Rescan</button>
+          </div>
+        </div>
+      </div>
+
       <!-- NPTEL Mode Info & Answer Input -->
       <div class="controls-bar" style="margin-top: 10px;">
         <div class="platform-badge">
