@@ -374,9 +374,22 @@
       display: flex;
       justify-content: space-between;
     }
+    .no-print {
+      display: block;
+    }
+    @media print {
+      .no-print {
+        display: none !important;
+      }
+    }
   </style>
 </head>
 <body>
+  <div class="no-print" style="position: sticky; top: 0; background: #09090b; color: white; padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #27272a; margin-bottom: 16px; z-index: 10000; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
+    <div style="font-size: 13px; font-weight: 600; color: #10b981;">✔ FormFlow Quiz Document Ready</div>
+    <button onclick="window.print()" style="background: #10b981; color: white; border: none; padding: 8px 16px; border-radius: 6px; font-weight: 600; font-size: 13px; cursor: pointer;">🖨️ Print / Save as PDF</button>
+  </div>
+
   <div class="pdf-doc-header">
     <div class="pdf-title-block">
       <h1>${title}</h1>
@@ -396,41 +409,57 @@
     <span>Exported via FormFlow — Precision Autofill</span>
     <span>Page 1 of Document</span>
   </div>
+
+  <script>
+    window.addEventListener('load', function() {
+      setTimeout(function() {
+        try { window.print(); } catch (e) {}
+      }, 400);
+    });
+  </script>
 </body>
 </html>`;
 
-    // Render inside a hidden iframe to isolate print context
-    let printFrame = document.getElementById('formflow-print-frame');
-    if (!printFrame) {
-      printFrame = document.createElement('iframe');
-      printFrame.id = 'formflow-print-frame';
-      printFrame.style.position = 'fixed';
-      printFrame.style.top = '-9999px';
-      printFrame.style.left = '-9999px';
-      printFrame.style.width = '0px';
-      printFrame.style.height = '0px';
-      printFrame.style.border = 'none';
-      document.body.appendChild(printFrame);
-    }
-
-    const frameDoc = printFrame.contentWindow.document;
-    frameDoc.open();
-    frameDoc.write(fullHtml);
-    frameDoc.close();
-
-    // Await all images inside iframe to decode
-    const frameImages = Array.from(frameDoc.querySelectorAll('img'));
-    await Promise.all(frameImages.map(img => {
-      if (img.complete) return Promise.resolve();
-      return img.decode().catch(() => Promise.resolve());
-    }));
+    // Convert document to a Blob URL to bypass iframe sandboxing and CSP restrictions
+    const blob = new Blob([fullHtml], { type: 'text/html;charset=utf-8' });
+    const blobUrl = URL.createObjectURL(blob);
 
     if (onProgress) onProgress('Ready! Launching system print dialog...');
 
-    setTimeout(() => {
-      printFrame.contentWindow.focus();
-      printFrame.contentWindow.print();
-    }, 300);
+    try {
+      const printWindow = window.open(blobUrl, '_blank');
+      if (!printWindow) {
+        // Fallback to hidden iframe if popups blocked
+        let printFrame = document.getElementById('formflow-print-frame');
+        if (!printFrame) {
+          printFrame = document.createElement('iframe');
+          printFrame.id = 'formflow-print-frame';
+          printFrame.style.position = 'fixed';
+          printFrame.style.top = '-9999px';
+          printFrame.style.left = '-9999px';
+          printFrame.style.width = '0px';
+          printFrame.style.height = '0px';
+          printFrame.style.border = 'none';
+          document.body.appendChild(printFrame);
+        }
+        printFrame.src = blobUrl;
+      }
+    } catch (e) {
+      console.warn('[FormFlow] Could not open print window, falling back to iframe:', e);
+      let printFrame = document.getElementById('formflow-print-frame');
+      if (!printFrame) {
+        printFrame = document.createElement('iframe');
+        printFrame.id = 'formflow-print-frame';
+        printFrame.style.position = 'fixed';
+        printFrame.style.top = '-9999px';
+        printFrame.style.left = '-9999px';
+        printFrame.style.width = '0px';
+        printFrame.style.height = '0px';
+        printFrame.style.border = 'none';
+        document.body.appendChild(printFrame);
+      }
+      printFrame.src = blobUrl;
+    }
 
     return {
       success: true,

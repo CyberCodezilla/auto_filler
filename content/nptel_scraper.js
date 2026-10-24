@@ -73,10 +73,45 @@
   }
 
   /**
+   * Returns all documents accessible from current context
+   * (the main document and any same-origin iframe contentDocuments)
+   */
+  function getCandidateDocs() {
+    const docs = [document];
+    try {
+      const iframes = Array.from(document.querySelectorAll('iframe'));
+      for (const iframe of iframes) {
+        try {
+          if (iframe.contentDocument && iframe.contentDocument.body) {
+            docs.push(iframe.contentDocument);
+          }
+        } catch (e) {
+          // Cross-origin iframe (handled natively via all_frames: true)
+        }
+      }
+    } catch (e) {}
+    return docs;
+  }
+
+  const COURSEBUILDER_SELECTORS = [
+    '.qt-mc-question',
+    '.qt-sa-question',
+    '.gcb-assessment-item',
+    '.gcb-question',
+    '.qt-question-block',
+    'table.gcb-assessment-question',
+    'div[id^="question_"]',
+    'div[id^="qt_"]',
+    '.assessment-question',
+    '.quiz-question',
+    '.assessment-item'
+  ].join(', ');
+
+  /**
    * Layer A: Scrapes Google Course Builder (.qt-*) structure used by NPTEL
    */
-  function scrapeCourseBuilderQuestions() {
-    const containers = Array.from(document.querySelectorAll('.qt-mc-question, .qt-sa-question, .gcb-assessment-item'));
+  function scrapeCourseBuilderQuestions(rootDoc = document) {
+    const containers = Array.from(rootDoc.querySelectorAll(COURSEBUILDER_SELECTORS));
     if (containers.length === 0) return [];
 
     const questions = [];
@@ -89,7 +124,7 @@
       }
 
       // Prompt extraction
-      const promptEl = container.querySelector('.qt-question, .qt-question-text, .gcb-question-title') || container;
+      const promptEl = container.querySelector('.qt-question, .qt-question-text, .gcb-question-title, .question-prompt, h2, h3, h4') || container;
       const title = cleanPromptText(promptEl) || `Question ${index + 1}`;
 
       // Extract all images in prompt
@@ -100,8 +135,8 @@
       }));
 
       // Detect input elements
-      const radios = Array.from(container.querySelectorAll('.qt-choices input[type="radio"], input[type="radio"]'));
-      const checkboxes = Array.from(container.querySelectorAll('.qt-choices input[type="checkbox"], input[type="checkbox"]'));
+      const radios = Array.from(container.querySelectorAll('.qt-choices input[type="radio"], input[type="radio"], [role="radio"]'));
+      const checkboxes = Array.from(container.querySelectorAll('.qt-choices input[type="checkbox"], input[type="checkbox"], [role="checkbox"]'));
       const select = container.querySelector('.qt-response select, select');
       const textInput = container.querySelector(
         '.qt-response input[type="text"], .qt-response input[type="number"], .qt-response textarea, input[type="text"], input[type="number"], textarea'
@@ -214,16 +249,18 @@
   /**
    * Layer B: Structural DOM fallback for modernized or custom LMS layouts
    */
-  function scrapeStructuralFallbackQuestions() {
-    // Find all radio/checkbox groups by shared name attribute
-    const allInputs = Array.from(document.querySelectorAll('input[type="radio"], input[type="checkbox"], select, input[type="text"], input[type="number"], textarea'));
+  function scrapeStructuralFallbackQuestions(rootDoc = document) {
+    // Find all radio/checkbox groups, selects, or text inputs
+    const allInputs = Array.from(rootDoc.querySelectorAll(
+      'input[type="radio"], input[type="checkbox"], [role="radio"], [role="checkbox"], select, input[type="text"], input[type="number"], textarea'
+    ));
     if (allInputs.length === 0) return [];
 
     const groupedQuestions = new Map();
 
     allInputs.forEach(input => {
       // Find nearest question container
-      const container = input.closest('.question, .assessment-item, .card, fieldset, tr, li, .form-group') || input.parentElement;
+      const container = input.closest('.question, .assessment-item, .card, fieldset, tr, li, .form-group, div[class*="question"], div[id*="question"]') || input.parentElement;
       const name = input.name || `unnamed-${Math.random()}`;
       const groupKey = (input.type === 'radio' || input.type === 'checkbox') ? `${input.type}-${name}` : `field-${Math.random()}`;
 
@@ -331,18 +368,26 @@
   }
 
   /**
-   * Main entry point: Dual-layer scraper
+   * Main entry point: Dual-layer scraper searching across all candidate documents
    */
   function scrapeNptelQuestions() {
-    // Layer A: CourseBuilder classes
-    let questions = scrapeCourseBuilderQuestions();
+    const docs = getCandidateDocs();
 
-    // Layer B: Structural DOM fallback if Layer A returns empty
-    if (questions.length === 0) {
-      questions = scrapeStructuralFallbackQuestions();
+    for (const doc of docs) {
+      // Layer A: CourseBuilder classes
+      let questions = scrapeCourseBuilderQuestions(doc);
+
+      // Layer B: Structural DOM fallback if Layer A returns empty
+      if (!questions || questions.length === 0) {
+        questions = scrapeStructuralFallbackQuestions(doc);
+      }
+
+      if (questions && questions.length > 0) {
+        return questions;
+      }
     }
 
-    return questions;
+    return [];
   }
 
   window.FormFlow.NptelScraper = {

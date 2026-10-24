@@ -99,6 +99,7 @@
   const chipSkipped = document.getElementById('chipSkipped');
 
   let activeTabId = null;
+  let activeFrameId = null;
   let activeTabIsForm = false;
   let latestAuditData = null;
 
@@ -120,6 +121,56 @@
   }
 
   /**
+   * Probes all frames in the tab to locate the frame containing the assessment DOM
+   * (e.g. NPTEL / SWAYAM embedded CourseBuilder iframe vs Google Forms top frame)
+   */
+  async function resolveActiveAssessmentFrame(tabId) {
+    if (!chrome.scripting || !chrome.scripting.executeScript) {
+      return null;
+    }
+    try {
+      const frameResults = await chrome.scripting.executeScript({
+        target: { tabId, allFrames: true },
+        func: () => {
+          if (window.FormFlow && window.FormFlow.NptelScraper) {
+            const qs = window.FormFlow.NptelScraper.scrapeNptelQuestions();
+            if (qs && qs.length > 0) {
+              return { isNptel: true, count: qs.length };
+            }
+          }
+          if (window.FormFlow && window.FormFlow.Scraper) {
+            const qs = window.FormFlow.Scraper.scrapeFormQuestions();
+            if (qs && qs.length > 0) {
+              return { isForm: true, count: qs.length };
+            }
+          }
+          return null;
+        }
+      });
+
+      if (Array.isArray(frameResults)) {
+        // Find frame that returned valid question count
+        const match = frameResults.find(r => r.result && r.result.count > 0);
+        if (match && typeof match.frameId === 'number') {
+          return match.frameId;
+        }
+      }
+    } catch (e) {
+      console.warn('[FormFlow] Frame probe error:', e);
+    }
+    return null;
+  }
+
+  /**
+   * Centralized tab message sender targeting the correct assessment frame
+   */
+  function sendToActiveTab(message, callback) {
+    if (!activeTabId) return;
+    const options = (typeof activeFrameId === 'number') ? { frameId: activeFrameId } : {};
+    chrome.tabs.sendMessage(activeTabId, message, options, callback);
+  }
+
+  /**
    * Checks if active tab has a form and listens for FormFlow content script
    */
   async function checkActiveTabConnection() {
@@ -131,8 +182,13 @@
       }
 
       activeTabId = tab.id;
+      activeFrameId = await resolveActiveAssessmentFrame(activeTabId);
 
-      chrome.tabs.sendMessage(activeTabId, { action: 'GET_FORM_INFO' }, (response) => {
+      const queryInfo = (cb) => {
+        sendToActiveTab({ action: 'GET_FORM_INFO' }, cb);
+      };
+
+      const handleResponse = (response) => {
         if (chrome.runtime.lastError || !response) {
           setConnectionState(false, 'Not connected');
           showAlert('Please open a Google Form or NPTEL course page.', 'warning');
@@ -165,6 +221,18 @@
           setConnectionState(false, 'No questions found');
           showAlert('Page open, but 0 questions detected.', 'warning');
           activeTabIsForm = false;
+        }
+      };
+
+      queryInfo(async (firstRes) => {
+        if (!firstRes || !firstRes.isForm) {
+          // If first probe found 0 questions (SPA still hydrating), retry once after 400ms
+          setTimeout(async () => {
+            activeFrameId = await resolveActiveAssessmentFrame(activeTabId);
+            queryInfo(handleResponse);
+          }, 400);
+        } else {
+          handleResponse(firstRes);
         }
       });
     } catch (e) {
@@ -408,8 +476,7 @@
     pdfStatusBanner?.classList.remove('hidden');
     if (pdfStatusText) pdfStatusText.textContent = 'Pre-hydrating diagrams & formulas...';
 
-    chrome.tabs.sendMessage(
-      activeTabId,
+    sendToActiveTab(
       {
         action: 'EXPORT_PDF',
         highlightSelected: highlight
@@ -450,15 +517,7 @@
     setNptelLoading(true);
     hideNptelAlert();
 
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab) {
-      showNptelAlert('No active tab found.', 'error');
-      setNptelLoading(false);
-      return;
-    }
-
-    chrome.tabs.sendMessage(
-      tab.id,
+    sendToActiveTab(
       {
         action: 'FILL_FORM',
         rawAnswers: text,
@@ -557,8 +616,7 @@
     fillProfileNowBtn.disabled = true;
     fillProfileNowBtn.textContent = 'Filling Profile...';
 
-    chrome.tabs.sendMessage(
-      tab.id,
+    sendToActiveTab(
       {
         action: 'FILL_PROFILE_ONLY',
         studentProfile: profile
@@ -615,15 +673,7 @@
     setLoading(true);
     hideAlert();
 
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab) {
-      showAlert('No active tab found.', 'error');
-      setLoading(false);
-      return;
-    }
-
-    chrome.tabs.sendMessage(
-      tab.id,
+    sendToActiveTab(
       {
         action: 'FILL_FORM',
         rawAnswers: text,
@@ -657,10 +707,7 @@
    * Reverts changes made by FormFlow (preserves profile by default)
    */
   async function triggerUndo() {
-    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab) return;
-
-    chrome.tabs.sendMessage(tab.id, { action: 'UNDO_FILL', preserveProfile: true }, (response) => {
+    sendToActiveTab({ action: 'UNDO_FILL', preserveProfile: true }, (response) => {
       if (response && response.success) {
         showAlert('Autofilled inputs reverted (student profile preserved).', 'info');
         switchTab('input');
@@ -674,13 +721,9 @@
    * Smoothly scrolls the target question on Google Form into view
    */
   function jumpToQuestion(questionId) {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      if (tabs[0]) {
-        chrome.tabs.sendMessage(tabs[0].id, {
-          action: 'SCROLL_TO_QUESTION',
-          questionId: questionId
-        });
-      }
+    sendToActiveTab({
+      action: 'SCROLL_TO_QUESTION',
+      questionId: questionId
     });
   }
 

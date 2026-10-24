@@ -142,7 +142,7 @@
           identityCount: 0
         });
       }
-      return true;
+      return false;
     }
 
     if (action === 'FILL_PROFILE_ONLY') {
@@ -277,14 +277,14 @@
       } catch (err) {
         sendResponse({ success: false, error: err.message });
       }
-      return true;
+      return false;
     }
 
     if (action === 'SCROLL_TO_QUESTION') {
       const { questionId } = request;
       const ok = window.FormFlow.Filler.scrollToQuestion(questionId);
       sendResponse({ success: ok });
-      return true;
+      return false;
     }
 
     return false;
