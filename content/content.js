@@ -182,9 +182,15 @@
 
           // Retrieve student profile for Pass 1 resolution
           let profile = request.studentProfile;
-          if (!profile) {
+          const hasProfileValues = profile && Object.values(profile).some(v => typeof v === 'string' && v.trim().length > 0);
+          if (!hasProfileValues) {
             const stored = await getStoredProfile();
             profile = stored.studentProfile || null;
+          } else {
+            const stored = await getStoredProfile();
+            if (stored && stored.studentProfile) {
+              profile = { ...stored.studentProfile, ...profile };
+            }
           }
 
           let matchPlan;

@@ -382,7 +382,19 @@
 
     const mode = document.querySelector('input[name="matchingMode"]:checked')?.value || 'sequential';
     const shouldSkipFilled = skipFilledCheck ? skipFilledCheck.checked : true;
-    const profile = getProfileData();
+    
+    // Ensure we merge saved storage profile with any current inputs
+    let profile = getProfileData();
+    try {
+      const stored = await chrome.storage.local.get('studentProfile');
+      if (stored && stored.studentProfile) {
+        for (const key in stored.studentProfile) {
+          if (!profile[key] && stored.studentProfile[key]) {
+            profile[key] = stored.studentProfile[key];
+          }
+        }
+      }
+    } catch (e) {}
 
     setLoading(true);
     hideAlert();

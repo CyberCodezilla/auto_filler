@@ -63,34 +63,40 @@
   async function fillDropdown(trigger, targetValue, targetElement) {
     if (!trigger) return false;
 
-    // If we already have the element and it's visible, click it directly
+    // If targetElement is already visible and clickable, click directly
     if (targetElement && targetElement.offsetParent !== null) {
-      targetElement.click();
+      clickChoiceElement(targetElement);
       return true;
     }
 
-    // Step 1: Click the listbox container to trigger the dropdown popup menu
-    trigger.click();
+    // Step 1: Open the dropdown
+    clickChoiceElement(trigger);
     await wait(200);
 
-    // Step 2: Google Forms attaches the options menu into a portal or directly under body/listbox
+    // Step 2: If targetElement exists now that dropdown is opened, click it
+    if (targetElement) {
+      clickChoiceElement(targetElement);
+      await wait(100);
+      return true;
+    }
+
+    // Step 3: Otherwise search dynamically in open options
     const openOptions = Array.from(document.querySelectorAll('div[role="option"]'));
     const cleanTarget = (targetValue || '').trim().toLowerCase();
 
-    // Try finding option by data-value or text
     let targetOption = openOptions.find(opt => {
       const val = (opt.getAttribute('data-value') || '').trim().toLowerCase();
       const txt = (opt.innerText || '').trim().toLowerCase();
-      return val === cleanTarget || txt === cleanTarget || txt.includes(cleanTarget);
+      return val === cleanTarget || txt === cleanTarget || (txt.length >= 3 && cleanTarget.includes(txt)) || (cleanTarget.length >= 3 && txt.includes(cleanTarget));
     });
 
     if (targetOption) {
-      targetOption.click();
+      clickChoiceElement(targetOption);
       await wait(100);
       return true;
     } else {
-      // Close dropdown by pressing Escape or clicking trigger
-      trigger.click();
+      // Close dropdown
+      clickChoiceElement(trigger);
       return false;
     }
   }
