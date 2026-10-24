@@ -152,6 +152,35 @@
 
     if (onProgress) onProgress(`Pre-hydrating diagrams and images across ${questions.length} questions...`);
 
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // Extract assignment preamble (problem statement, rules, shared AND-OR graphs, formulas)
+    let preambleHtml = '';
+    if (window.FormFlow.NptelScraper && window.FormFlow.NptelScraper.extractAssignmentPreamble) {
+      try {
+        const preambleEl = window.FormFlow.NptelScraper.extractAssignmentPreamble(document);
+        if (preambleEl) {
+          const preambleClone = preambleEl.cloneNode(true);
+          sanitizeFormulas(preambleClone);
+          await hydrateClonedImages(preambleClone);
+          preambleClone.querySelectorAll('input, select, textarea, button').forEach(el => el.remove());
+          if (preambleClone.textContent.trim().length > 15 || preambleClone.querySelector('img')) {
+            preambleHtml = preambleClone.innerHTML.trim();
+          }
+        }
+      } catch (e) {
+        console.warn('[FormFlow] Could not extract preamble:', e);
+      }
+    }
+
     // Build question cards HTML
     const cardsHtml = [];
 
@@ -159,11 +188,41 @@
       const q = questions[i];
       const qNum = i + 1;
 
-      // Clone question prompt
-      const promptEl = q.promptElement || q.container.querySelector('[role="heading"], .qt-question, h1, h2, h3, h4, .prompt') || q.container;
-      const promptClone = promptEl.cloneNode(true);
+      // Prompt extraction
+      const rawPrompt = q.promptElement || (window.FormFlow.NptelScraper?.extractPromptElement ? window.FormFlow.NptelScraper.extractPromptElement(q.container) : null) || q.container;
+      const promptClone = rawPrompt.cloneNode(true);
       sanitizeFormulas(promptClone);
       await hydrateClonedImages(promptClone);
+
+      // Strip inputs, controls, and choice wrappers from promptClone
+      promptClone.querySelectorAll(
+        'input, select, textarea, button, .qt-choices, .qt-response, .options, .option-row, .options-container, .gcb-options-row, .gcb-mcq-choice, .option-lbl, ul.qt-choices'
+      ).forEach(el => el.remove());
+
+      let promptHtml = promptClone.innerHTML.trim();
+      const promptText = (promptClone.textContent || '').trim();
+
+      // If prompt HTML has no text and no images, fallback cleanly to question title
+      if (!promptText && !promptClone.querySelector('img')) {
+        promptHtml = `<p style="font-weight: 600; margin: 0 0 6px 0; color: #18181b;">${escapeHtml(q.title)}</p>`;
+      }
+
+      // Check if container has any diagrams or images not yet present in promptHtml
+      const containerImages = Array.from(q.container.querySelectorAll('img')).filter(img => {
+        const src = (img.src || img.getAttribute('src') || '').toLowerCase();
+        return !src.includes('check') && !src.includes('cross') && !src.includes('icon') && !src.includes('logo');
+      });
+
+      let extraImagesHtml = '';
+      for (const img of containerImages) {
+        const b64 = await imageToBase64(img) || img.src;
+        if (!promptHtml.includes(b64) && !promptHtml.includes(img.src)) {
+          extraImagesHtml += `<img src="${b64}" style="max-width: 100%; max-height: 320px; object-fit: contain; margin: 8px 0; border-radius: 4px; display: block;" />`;
+        }
+      }
+      if (extraImagesHtml) {
+        promptHtml += extraImagesHtml;
+      }
 
       // Build options HTML
       let optionsHtml = '';
@@ -177,13 +236,23 @@
           const isSelected = !!opt.isChecked;
           const letter = opt.letter || String.fromCharCode(65 + j);
 
-          let optContent = opt.text;
+          let optContent = escapeHtml(opt.text);
           if (opt.wrapper) {
             const optClone = opt.wrapper.cloneNode(true);
             sanitizeFormulas(optClone);
             await hydrateClonedImages(optClone);
             optClone.querySelectorAll('input').forEach(inp => inp.remove());
-            optContent = optClone.innerHTML.trim() || opt.text;
+            const cloneText = (optClone.textContent || '').trim();
+            if (cloneText.length > 0 && cloneText.toLowerCase() !== 'on') {
+              optContent = optClone.innerHTML.trim();
+            } else if (opt.text && opt.text.toLowerCase() !== 'on') {
+              optContent = escapeHtml(opt.text);
+            }
+          }
+
+          // Guard against "on" label
+          if (optContent.toLowerCase() === 'on' || optContent === '') {
+            optContent = `Option ${letter}`;
           }
 
           const selectedClass = (highlightSelected && isSelected) ? 'pdf-option selected' : 'pdf-option';
@@ -204,7 +273,7 @@
         optionsHtml = `
           <div class="pdf-text-response">
             <span class="pdf-label">Dropdown Selection:</span>
-            <span class="pdf-value">${selectedVal ? selectedVal : '<em>(Unanswered)</em>'}</span>
+            <span class="pdf-value">${selectedVal ? escapeHtml(selectedVal) : '<em>(Unanswered)</em>'}</span>
           </div>
         `;
       } else if (q.type === 'text' || q.type === 'number' || q.type === 'textarea') {
@@ -212,7 +281,7 @@
         optionsHtml = `
           <div class="pdf-text-response">
             <span class="pdf-label">Answer:</span>
-            <span class="pdf-value ${val ? 'filled' : ''}">${val ? val : '________________________________________'}</span>
+            <span class="pdf-value ${val ? 'filled' : ''}">${val ? escapeHtml(val) : '________________________________________'}</span>
           </div>
         `;
       }
@@ -221,7 +290,7 @@
         <div class="pdf-question-card">
           <div class="pdf-question-header">
             <span class="pdf-question-badge">Q${qNum}</span>
-            <div class="pdf-question-prompt">${promptClone.innerHTML}</div>
+            <div class="pdf-question-prompt">${promptHtml}</div>
           </div>
           ${optionsHtml}
         </div>
@@ -365,6 +434,39 @@
       font-weight: 600;
       color: #059669;
     }
+    .pdf-preamble-card {
+      border: 1px solid #cbd5e1;
+      background: #f8fafc;
+      border-radius: 8px;
+      padding: 14px 18px;
+      margin-bottom: 20px;
+      break-inside: auto;
+      page-break-inside: auto;
+    }
+    .pdf-preamble-badge {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #0369a1;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pdf-preamble-body {
+      font-size: 13px;
+      color: #1e293b;
+      line-height: 1.55;
+    }
+    .pdf-preamble-body img {
+      max-width: 100%;
+      max-height: 420px;
+      object-fit: contain;
+      display: block;
+      margin: 14px auto;
+      border-radius: 6px;
+    }
     .pdf-footer {
       border-top: 1px solid #e4e4e7;
       padding-top: 8px;
@@ -400,6 +502,13 @@
       <div>${dateStr}</div>
     </div>
   </div>
+
+  ${preambleHtml ? `
+    <div class="pdf-preamble-card">
+      <div class="pdf-preamble-badge">📌 Assessment Instructions & Problem Statement</div>
+      <div class="pdf-preamble-body">${preambleHtml}</div>
+    </div>
+  ` : ''}
 
   <div class="pdf-cards-list">
     ${cardsHtml.join('')}

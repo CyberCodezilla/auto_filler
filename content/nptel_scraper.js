@@ -52,21 +52,94 @@
   }
 
   /**
-   * Extracts clean label text for an option, stripping radio/checkbox values or prefixes if needed
+   * Extracts clean label text for an option, stripping radio/checkbox values or prefixes
    */
   function cleanOptionLabel(container, inputEl) {
-    if (!container) return '';
+    if (!container && !inputEl) return '';
 
-    const clone = container.cloneNode(true);
-    // Remove the input element itself from text computation
-    const inputs = clone.querySelectorAll('input, .MJX_Assistive_MathML, script');
-    inputs.forEach(i => i.remove());
+    let labelText = '';
 
-    let labelText = (clone.textContent || clone.innerText || '').trim();
+    // 1. If inputEl has an ID, look for matching <label for="inputId">
+    if (inputEl && inputEl.id) {
+      const doc = inputEl.ownerDocument || document;
+      try {
+        const forLabel = doc.querySelector(`label[for="${CSS.escape(inputEl.id)}"]`);
+        if (forLabel) {
+          const clone = forLabel.cloneNode(true);
+          clone.querySelectorAll('input, .MJX_Assistive_MathML, script').forEach(n => n.remove());
+          labelText = (clone.textContent || clone.innerText || '').trim();
+        }
+      } catch (e) {}
+    }
 
-    // Fallback to title or aria-label of input if container text is empty
+    // 2. Check inputEl.closest('label')
     if (!labelText && inputEl) {
-      labelText = inputEl.getAttribute('aria-label') || inputEl.getAttribute('title') || inputEl.value || '';
+      const parentLabel = inputEl.closest('label');
+      if (parentLabel) {
+        const clone = parentLabel.cloneNode(true);
+        clone.querySelectorAll('input, .MJX_Assistive_MathML, script').forEach(n => n.remove());
+        labelText = (clone.textContent || clone.innerText || '').trim();
+      }
+    }
+
+    // 3. Check adjacent sibling elements (e.g. <input><label>Text</label> or <input><span>Text</span>)
+    if (!labelText && inputEl) {
+      let sib = inputEl.nextElementSibling;
+      while (sib) {
+        if (sib.matches('label, span, div, p, .option-lbl, .gcb-mcq-choice, td')) {
+          const clone = sib.cloneNode(true);
+          clone.querySelectorAll('input, .MJX_Assistive_MathML, script').forEach(n => n.remove());
+          const text = (clone.textContent || clone.innerText || '').trim();
+          if (text.length > 0) {
+            labelText = text;
+            break;
+          }
+        }
+        sib = sib.nextElementSibling;
+      }
+    }
+
+    // 4. Check if input is inside a table cell <td>, then check adjacent <td>
+    if (!labelText && inputEl && inputEl.closest('td')) {
+      const td = inputEl.closest('td');
+      const nextTd = td.nextElementSibling;
+      if (nextTd) {
+        const clone = nextTd.cloneNode(true);
+        clone.querySelectorAll('input, .MJX_Assistive_MathML, script').forEach(n => n.remove());
+        labelText = (clone.textContent || clone.innerText || '').trim();
+      }
+    }
+
+    // 5. Check if input has a parent choice row (e.g. .gcb-mcq-choice, .option-row, tr, li)
+    if (!labelText && inputEl) {
+      const row = inputEl.closest('.gcb-mcq-choice, .option-row, .option-item, li, tr');
+      if (row) {
+        const clone = row.cloneNode(true);
+        clone.querySelectorAll('input, .MJX_Assistive_MathML, script').forEach(n => n.remove());
+        labelText = (clone.textContent || clone.innerText || '').trim();
+      }
+    }
+
+    // 6. Check container text with inputs stripped
+    if (!labelText && container) {
+      const clone = container.cloneNode(true);
+      clone.querySelectorAll('input, .MJX_Assistive_MathML, script').forEach(n => n.remove());
+      labelText = (clone.textContent || clone.innerText || '').trim();
+    }
+
+    // 7. Check aria-label or title of input
+    if (!labelText && inputEl) {
+      labelText = inputEl.getAttribute('aria-label') || inputEl.getAttribute('title') || '';
+    }
+
+    // Guard: If labelText is "on" (case-insensitive), it is the HTML default checkbox value, NOT label text!
+    if (labelText.toLowerCase() === 'on') {
+      labelText = '';
+    }
+
+    // Guard: Only use input.value if it's NOT "on" and not a pure integer index like "0", "1"
+    if (!labelText && inputEl && inputEl.value && inputEl.value.toLowerCase() !== 'on' && !/^\d+$/.test(inputEl.value.trim())) {
+      labelText = inputEl.value.trim();
     }
 
     return labelText.trim();
@@ -93,6 +166,87 @@
     return docs;
   }
 
+  /**
+   * Extracts the assignment preamble/instructions header that often contains
+   * the shared problem statement, rules, formulas, and main diagrams (e.g. the AND-OR graph).
+   */
+  function extractAssignmentPreamble(rootDoc = document) {
+    const candidates = [
+      rootDoc.querySelector('.gcb-assessment-description'),
+      rootDoc.querySelector('.assessment-description'),
+      rootDoc.querySelector('.gcb-assessment-instructions'),
+      rootDoc.querySelector('.assessment-instructions'),
+      rootDoc.querySelector('.assignment-description'),
+      rootDoc.querySelector('.gcb-lesson-content > div:first-child'),
+      rootDoc.querySelector('.unit-content > div:first-child'),
+      rootDoc.querySelector('#assessment-form > div:first-child'),
+      rootDoc.querySelector('form#assessment-form > .gcb-border-box:first-of-type'),
+      rootDoc.querySelector('.assessment-header-instructions'),
+      rootDoc.querySelector('.instructions')
+    ].filter(Boolean);
+
+    for (const c of candidates) {
+      if ((c.textContent.trim().length > 25 || c.querySelector('img')) &&
+          !c.querySelector('input[type="radio"], input[type="checkbox"], .qt-choices')) {
+        return c;
+      }
+    }
+
+    // Fallback: Check any element in the container preceding the first question
+    const firstQ = rootDoc.querySelector('.qt-mc-question, .qt-sa-question, table.gcb-assessment-question, .question-row');
+    if (firstQ && firstQ.parentElement) {
+      const parent = firstQ.parentElement;
+      for (const child of Array.from(parent.children)) {
+        if (child === firstQ) break;
+        if ((child.textContent.trim().length > 25 || child.querySelector('img')) &&
+            !child.querySelector('input[type="radio"], input[type="checkbox"], input[type="text"]')) {
+          return child;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Extracts the true question prompt element inside a question container
+   */
+  function extractPromptElement(container) {
+    if (!container) return null;
+
+    const promptSelectors = [
+      '.qt-question-text',
+      '.qt-question',
+      '.gcb-question-text',
+      'td.gcb-question-text',
+      '.gcb-question-title',
+      '.question-_viewer',
+      '[class*="question-_viewer"]',
+      '.question-text',
+      '[class*="question-text"]',
+      '.question-statement',
+      '[class*="question-statement"]',
+      '.question-prompt',
+      '.prompt',
+      'tr.gcb-question-row'
+    ];
+
+    for (const sel of promptSelectors) {
+      const el = container.querySelector(sel);
+      if (el && (cleanPromptText(el).length > 0 || el.querySelector('img'))) {
+        return el;
+      }
+    }
+
+    // If container is a table, check first row
+    if (container.tagName && container.tagName.toLowerCase() === 'table') {
+      const firstRow = container.querySelector('tr');
+      if (firstRow) return firstRow;
+    }
+
+    return null;
+  }
+
   const COURSEBUILDER_SELECTORS = [
     '.question-row',
     'div.question-row',
@@ -105,7 +259,6 @@
     'table.gcb-assessment-question',
     'div[id^="question_"]',
     'div[id^="question-"]',
-    'div[id^="qt_"]',
     '.assessment-question',
     '.quiz-question',
     '.assessment-item',
@@ -122,7 +275,11 @@
    * Layer A: Scrapes Google Course Builder (.qt-*) and modern NPTEL (.question-row) structures
    */
   function scrapeCourseBuilderQuestions(rootDoc = document) {
-    const containers = Array.from(rootDoc.querySelectorAll(COURSEBUILDER_SELECTORS));
+    const containers = Array.from(rootDoc.querySelectorAll(COURSEBUILDER_SELECTORS)).filter(el => {
+      // Must contain at least one real question input
+      return !!el.querySelector('input[type="radio"], input[type="checkbox"], [role="radio"], [role="checkbox"], select, input[type="text"], input[type="number"], textarea');
+    });
+
     if (containers.length === 0) return [];
 
     const questions = [];
@@ -134,10 +291,8 @@
         container.style.position = 'relative';
       }
 
-      // Prompt extraction (supports both legacy .qt-question and modern .question-_viewer)
-      const promptEl = container.querySelector(
-        '.question-_viewer, [class*="question-_viewer"], .question-text, [class*="question-text"], .question-statement, [class*="question-statement"], .qt-question, .qt-question-text, .gcb-question-title, .question-prompt, h1, h2, h3, h4, h5, .prompt, p'
-      ) || container;
+      // Prompt extraction
+      const promptEl = extractPromptElement(container) || container;
       const title = cleanPromptText(promptEl) || `Question ${index + 1}`;
 
       // Extract all images in container (diagrams, math formulas, circuits)
@@ -437,6 +592,8 @@
   window.FormFlow.NptelScraper = {
     isNptelPage,
     scrapeNptelQuestions,
-    cleanPromptText
+    cleanPromptText,
+    extractAssignmentPreamble,
+    extractPromptElement
   };
 })();
