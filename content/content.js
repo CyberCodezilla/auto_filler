@@ -273,24 +273,6 @@
       return true;
     }
 
-    if (action === 'EXPORT_PDF') {
-      (async () => {
-        try {
-          if (!window.FormFlow.PdfExporter) {
-            throw new Error('FormFlow PDF Exporter module not loaded.');
-          }
-          const highlightSelected = request.highlightSelected !== undefined ? request.highlightSelected : true;
-          const result = await window.FormFlow.PdfExporter.exportQuizToPdf({
-            highlightSelected
-          });
-          sendResponse({ success: true, ...result });
-        } catch (err) {
-          console.error('[FormFlow] PDF export error:', err);
-          sendResponse({ success: false, error: err.message });
-        }
-      })();
-      return true;
-    }
 
     if (action === 'UNDO_FILL') {
       try {

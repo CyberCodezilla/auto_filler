@@ -50,12 +50,6 @@
   const shortcutKbd = document.getElementById('shortcutKbd');
 
   // DOM Elements - NPTEL Tab
-  const exportPdfBtn = document.getElementById('exportPdfBtn');
-  const exportPdfBtnLabel = document.getElementById('exportPdfBtnLabel');
-  const pdfBtnSpinner = document.getElementById('pdfBtnSpinner');
-  const highlightPdfCheck = document.getElementById('highlightPdfCheck');
-  const pdfStatusBanner = document.getElementById('pdfStatusBanner');
-  const pdfStatusText = document.getElementById('pdfStatusText');
   const nptelRawInput = document.getElementById('nptelRawInput');
   const nptelLinesCounter = document.getElementById('nptelLinesCounter');
   const clearNptelInputBtn = document.getElementById('clearNptelInputBtn');
@@ -391,10 +385,6 @@
       });
     }
 
-    if (exportPdfBtn) {
-      exportPdfBtn.addEventListener('click', triggerExportPdf);
-    }
-
     if (nptelExecuteBtn) {
       nptelExecuteBtn.addEventListener('click', triggerNptelFill);
     }
@@ -612,87 +602,6 @@
     nptelPageAlert?.classList.add('hidden');
   }
 
-  /**
-   * Triggers the Flawless Zero-Glitch Quiz-to-PDF Exporter
-   * Captures entire active quiz (all questions, options, MathJax formulas, and pre-hydrated images)
-   */
-  async function triggerExportPdf() {
-    if (!activeTabId) {
-      showNptelAlert('No active tab connected.', 'error');
-      return;
-    }
-
-    const highlight = highlightPdfCheck ? highlightPdfCheck.checked : true;
-
-    exportPdfBtn.disabled = true;
-    pdfBtnSpinner?.classList.remove('hidden');
-    if (exportPdfBtnLabel) exportPdfBtnLabel.textContent = 'Generating PDF...';
-    pdfStatusBanner?.classList.remove('hidden');
-    if (pdfStatusText) pdfStatusText.textContent = 'Pre-hydrating diagrams & formulas...';
-
-    // Ensure content scripts are active
-    await ensureContentScriptsInjected(activeTabId);
-    if (activeFrameId === null) {
-      activeFrameId = await resolveActiveAssessmentFrame(activeTabId);
-    }
-
-    sendToActiveTab(
-      {
-        action: 'EXPORT_PDF',
-        highlightSelected: highlight
-      },
-      async (response) => {
-        // If messaging port failed or closed, fall back to direct executeScript
-        if (chrome.runtime.lastError || !response || !response.success) {
-          console.warn('[FormFlow] Direct message failed, attempting script fallback...', chrome.runtime.lastError);
-          try {
-            const targetOpts = (typeof activeFrameId === 'number' && activeFrameId !== 0)
-              ? { tabId: activeTabId, frameIds: [activeFrameId] }
-              : { tabId: activeTabId, allFrames: true };
-
-            const execRes = await chrome.scripting.executeScript({
-              target: targetOpts,
-              func: async (hl) => {
-                if (window.FormFlow && window.FormFlow.PdfExporter) {
-                  return await window.FormFlow.PdfExporter.exportQuizToPdf({ highlightSelected: hl });
-                }
-                return null;
-              },
-              args: [highlight]
-            });
-
-            const match = execRes && execRes.find(r => r.result && r.result.success);
-            if (match) {
-              handlePdfExportSuccess(match.result);
-              return;
-            }
-          } catch (execErr) {
-            console.error('[FormFlow] Fallback script execution error:', execErr);
-          }
-
-          exportPdfBtn.disabled = false;
-          pdfBtnSpinner?.classList.add('hidden');
-          if (exportPdfBtnLabel) exportPdfBtnLabel.textContent = '📄 Export Entire Quiz to PDF (With Images)';
-          pdfStatusBanner?.classList.add('hidden');
-
-          const errMsg = response?.error || chrome.runtime.lastError?.message || 'Could not detect assessment questions on this page.';
-          showNptelAlert(`PDF Export Error: ${errMsg}`, 'error');
-          return;
-        }
-
-        handlePdfExportSuccess(response);
-      }
-    );
-
-    function handlePdfExportSuccess(res) {
-      exportPdfBtn.disabled = false;
-      pdfBtnSpinner?.classList.add('hidden');
-      if (exportPdfBtnLabel) exportPdfBtnLabel.textContent = '📄 Export Entire Quiz to PDF (With Images)';
-      pdfStatusBanner?.classList.add('hidden');
-      showNptelAlert(`Exported ${res.questionCount} questions to PDF successfully!`, 'success');
-      setTimeout(hideNptelAlert, 4000);
-    }
-  }
 
   /**
    * Triggers autofill for NPTEL quiz (100% quiz questions, bypassing identity pass)

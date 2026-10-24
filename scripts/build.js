@@ -109,7 +109,6 @@ const hardenedManifest = {
         "content/matcher.js",
         "content/scraper.js",
         "content/nptel_scraper.js",
-        "content/pdf_exporter.js",
         "content/filler.js",
         "content/content.js"
       ],
