@@ -33,9 +33,9 @@
 
     const clone = element.cloneNode(true);
 
-    // Remove hidden assistive math and raw script tags
+    // Remove hidden assistive math, raw script tags, inputs, and option labels
     const toRemove = clone.querySelectorAll(
-      '.MJX_Assistive_MathML, script[type="math/tex"], script[type^="math/"], .katex-mathml, annotation'
+      '.MJX_Assistive_MathML, script[type="math/tex"], script[type^="math/"], .katex-mathml, annotation, .qt-choices, .option-lbl, .option-row, .option-item, .options, input, select, textarea, button'
     );
     toRemove.forEach(node => node.remove());
 
@@ -94,6 +94,9 @@
   }
 
   const COURSEBUILDER_SELECTORS = [
+    '.question-row',
+    'div.question-row',
+    '[class*="question-row"]',
     '.qt-mc-question',
     '.qt-sa-question',
     '.gcb-assessment-item',
@@ -101,14 +104,22 @@
     '.qt-question-block',
     'table.gcb-assessment-question',
     'div[id^="question_"]',
+    'div[id^="question-"]',
     'div[id^="qt_"]',
     '.assessment-question',
     '.quiz-question',
-    '.assessment-item'
+    '.assessment-item',
+    '[class*="assessment-question"]',
+    '[class*="assessment-item"]',
+    '[class*="question-container"]',
+    '[class*="question-_viewer"]',
+    '.gcb-border-box',
+    '.gcb-assessment-contents',
+    'div.unit-content div[class*="question"]'
   ].join(', ');
 
   /**
-   * Layer A: Scrapes Google Course Builder (.qt-*) structure used by NPTEL
+   * Layer A: Scrapes Google Course Builder (.qt-*) and modern NPTEL (.question-row) structures
    */
   function scrapeCourseBuilderQuestions(rootDoc = document) {
     const containers = Array.from(rootDoc.querySelectorAll(COURSEBUILDER_SELECTORS));
@@ -123,20 +134,29 @@
         container.style.position = 'relative';
       }
 
-      // Prompt extraction
-      const promptEl = container.querySelector('.qt-question, .qt-question-text, .gcb-question-title, .question-prompt, h2, h3, h4') || container;
+      // Prompt extraction (supports both legacy .qt-question and modern .question-_viewer)
+      const promptEl = container.querySelector(
+        '.question-_viewer, [class*="question-_viewer"], .question-text, [class*="question-text"], .question-statement, [class*="question-statement"], .qt-question, .qt-question-text, .gcb-question-title, .question-prompt, h1, h2, h3, h4, h5, .prompt, p'
+      ) || container;
       const title = cleanPromptText(promptEl) || `Question ${index + 1}`;
 
-      // Extract all images in prompt
-      const promptImages = Array.from(promptEl.querySelectorAll('img')).map(img => ({
+      // Extract all images in container (diagrams, math formulas, circuits)
+      const promptImages = Array.from(container.querySelectorAll('img')).filter(img => {
+        const src = (img.src || img.getAttribute('src') || '').toLowerCase();
+        return !src.includes('check') && !src.includes('cross') && !src.includes('icon');
+      }).map(img => ({
         element: img,
         src: img.src || img.getAttribute('src'),
         alt: img.alt || ''
       }));
 
       // Detect input elements
-      const radios = Array.from(container.querySelectorAll('.qt-choices input[type="radio"], input[type="radio"], [role="radio"]'));
-      const checkboxes = Array.from(container.querySelectorAll('.qt-choices input[type="checkbox"], input[type="checkbox"], [role="checkbox"]'));
+      const radios = Array.from(container.querySelectorAll(
+        '.qt-choices input[type="radio"], input[type="radio"], [role="radio"]'
+      ));
+      const checkboxes = Array.from(container.querySelectorAll(
+        '.qt-choices input[type="checkbox"], input[type="checkbox"], [role="checkbox"]'
+      ));
       const select = container.querySelector('.qt-response select, select');
       const textInput = container.querySelector(
         '.qt-response input[type="text"], .qt-response input[type="number"], .qt-response textarea, input[type="text"], input[type="number"], textarea'
@@ -149,8 +169,20 @@
       if (radios.length > 0) {
         type = 'radio';
         options = radios.map((radio, optIdx) => {
-          const wrapper = radio.closest('.gcb-mcq-choice, label, li, div') || radio.parentElement;
-          const label = cleanOptionLabel(wrapper, radio);
+          const wrapper = radio.closest('.gcb-mcq-choice, .option-row, .option-item, .choice, label, li, div') || radio.parentElement;
+          let label = '';
+          if (radio.id) {
+            const forLabel = container.querySelector(`label[for="${radio.id}"]`);
+            if (forLabel) label = cleanOptionLabel(forLabel, radio);
+          }
+          if (!label) {
+            const optLbl = wrapper ? wrapper.querySelector('.option-lbl, label') : null;
+            if (optLbl) label = cleanOptionLabel(optLbl, radio);
+          }
+          if (!label) {
+            label = cleanOptionLabel(wrapper, radio);
+          }
+
           const letter = String.fromCharCode(65 + optIdx); // 'A', 'B', 'C'...
           return {
             index: optIdx,
@@ -165,8 +197,20 @@
       } else if (checkboxes.length > 0) {
         type = 'checkbox';
         options = checkboxes.map((cb, optIdx) => {
-          const wrapper = cb.closest('.gcb-mcq-choice, label, li, div') || cb.parentElement;
-          const label = cleanOptionLabel(wrapper, cb);
+          const wrapper = cb.closest('.gcb-mcq-choice, .option-row, .option-item, .choice, label, li, div') || cb.parentElement;
+          let label = '';
+          if (cb.id) {
+            const forLabel = container.querySelector(`label[for="${cb.id}"]`);
+            if (forLabel) label = cleanOptionLabel(forLabel, cb);
+          }
+          if (!label) {
+            const optLbl = wrapper ? wrapper.querySelector('.option-lbl, label') : null;
+            if (optLbl) label = cleanOptionLabel(optLbl, cb);
+          }
+          if (!label) {
+            label = cleanOptionLabel(wrapper, cb);
+          }
+
           const letter = String.fromCharCode(65 + optIdx);
           return {
             index: optIdx,

@@ -121,6 +121,31 @@
   }
 
   /**
+   * Ensures all FormFlow content scripts are active in the target tab across all frames.
+   * This is critical if the page was opened before the extension was loaded or updated.
+   */
+  async function ensureContentScriptsInjected(tabId) {
+    if (!chrome.scripting || !chrome.scripting.executeScript) return;
+    try {
+      await chrome.scripting.executeScript({
+        target: { tabId, allFrames: true },
+        files: [
+          'content/parser.js',
+          'content/identity.js',
+          'content/matcher.js',
+          'content/scraper.js',
+          'content/nptel_scraper.js',
+          'content/pdf_exporter.js',
+          'content/filler.js',
+          'content/content.js'
+        ]
+      });
+    } catch (e) {
+      // Content scripts already present or restricted tab
+    }
+  }
+
+  /**
    * Probes all frames in the tab to locate the frame containing the assessment DOM
    * (e.g. NPTEL / SWAYAM embedded CourseBuilder iframe vs Google Forms top frame)
    */
@@ -182,6 +207,9 @@
       }
 
       activeTabId = tab.id;
+
+      // Ensure content scripts are active before querying
+      await ensureContentScriptsInjected(activeTabId);
       activeFrameId = await resolveActiveAssessmentFrame(activeTabId);
 
       const queryInfo = (cb) => {
@@ -476,31 +504,68 @@
     pdfStatusBanner?.classList.remove('hidden');
     if (pdfStatusText) pdfStatusText.textContent = 'Pre-hydrating diagrams & formulas...';
 
+    // Ensure content scripts are active
+    await ensureContentScriptsInjected(activeTabId);
+    if (activeFrameId === null) {
+      activeFrameId = await resolveActiveAssessmentFrame(activeTabId);
+    }
+
     sendToActiveTab(
       {
         action: 'EXPORT_PDF',
         highlightSelected: highlight
       },
-      (response) => {
-        exportPdfBtn.disabled = false;
-        pdfBtnSpinner?.classList.add('hidden');
-        if (exportPdfBtnLabel) exportPdfBtnLabel.textContent = '📄 Export Entire Quiz to PDF (With Images)';
-        pdfStatusBanner?.classList.add('hidden');
+      async (response) => {
+        // If messaging port failed or closed, fall back to direct executeScript
+        if (chrome.runtime.lastError || !response || !response.success) {
+          console.warn('[FormFlow] Direct message failed, attempting script fallback...', chrome.runtime.lastError);
+          try {
+            const targetOpts = (typeof activeFrameId === 'number' && activeFrameId !== 0)
+              ? { tabId: activeTabId, frameIds: [activeFrameId] }
+              : { tabId: activeTabId, allFrames: true };
 
-        if (chrome.runtime.lastError) {
-          showNptelAlert(`PDF Export Error: ${chrome.runtime.lastError.message}`, 'error');
+            const execRes = await chrome.scripting.executeScript({
+              target: targetOpts,
+              func: async (hl) => {
+                if (window.FormFlow && window.FormFlow.PdfExporter) {
+                  return await window.FormFlow.PdfExporter.exportQuizToPdf({ highlightSelected: hl });
+                }
+                return null;
+              },
+              args: [highlight]
+            });
+
+            const match = execRes && execRes.find(r => r.result && r.result.success);
+            if (match) {
+              handlePdfExportSuccess(match.result);
+              return;
+            }
+          } catch (execErr) {
+            console.error('[FormFlow] Fallback script execution error:', execErr);
+          }
+
+          exportPdfBtn.disabled = false;
+          pdfBtnSpinner?.classList.add('hidden');
+          if (exportPdfBtnLabel) exportPdfBtnLabel.textContent = '📄 Export Entire Quiz to PDF (With Images)';
+          pdfStatusBanner?.classList.add('hidden');
+
+          const errMsg = response?.error || chrome.runtime.lastError?.message || 'Could not detect assessment questions on this page.';
+          showNptelAlert(`PDF Export Error: ${errMsg}`, 'error');
           return;
         }
 
-        if (!response || !response.success) {
-          showNptelAlert(response?.error || 'Failed to export quiz to PDF.', 'error');
-          return;
-        }
-
-        showNptelAlert(`Exported ${response.questionCount} questions to PDF successfully!`, 'success');
-        setTimeout(hideNptelAlert, 4000);
+        handlePdfExportSuccess(response);
       }
     );
+
+    function handlePdfExportSuccess(res) {
+      exportPdfBtn.disabled = false;
+      pdfBtnSpinner?.classList.add('hidden');
+      if (exportPdfBtnLabel) exportPdfBtnLabel.textContent = '📄 Export Entire Quiz to PDF (With Images)';
+      pdfStatusBanner?.classList.add('hidden');
+      showNptelAlert(`Exported ${res.questionCount} questions to PDF successfully!`, 'success');
+      setTimeout(hideNptelAlert, 4000);
+    }
   }
 
   /**
@@ -516,6 +581,11 @@
 
     setNptelLoading(true);
     hideNptelAlert();
+
+    await ensureContentScriptsInjected(activeTabId);
+    if (activeFrameId === null) {
+      activeFrameId = await resolveActiveAssessmentFrame(activeTabId);
+    }
 
     sendToActiveTab(
       {
