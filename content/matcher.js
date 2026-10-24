@@ -21,8 +21,9 @@
     const unmatchedAnswers = [];
     const matchedQuestionIndices = new Set();
     let answerIndex = 0;
+    const isNptel = questions.some(q => q && q.isNptel);
 
-    // Pass 1: Resolve Pre-filled fields & Student Profile Identity Fields
+    // Pass 1: Resolve Pre-filled fields & Student Profile Identity Fields (bypassed on NPTEL)
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       if (skipFilledQuestions && q.isAlreadyFilled) {
@@ -40,7 +41,7 @@
           reason: 'Skipped: Field already filled by user'
         };
         matchedQuestionIndices.add(i);
-      } else if (studentProfile) {
+      } else if (!isNptel && studentProfile) {
         const idModule = window.FormFlow.Identity;
         if (idModule) {
           const classification = idModule.classifyIdentityQuestion(q);
@@ -188,6 +189,26 @@
 
     // 3. Checkboxes (Multi-select)
     if (q.type === 'checkbox') {
+      // Step A: Evaluate whether the user's answer line matches a single option as a whole string first
+      const wholeMatch = Parser.findBestOptionMatch(answer, q.options);
+      const hasMultiDelimiters = /[;|,]/g.test(answer) || /^[A-Za-z](?:\s+(?:and\s+)?[A-Za-z])+$/i.test(answer.trim());
+      if (wholeMatch && (wholeMatch.score === 1.0 || (!hasMultiDelimiters && wholeMatch.score >= 0.80))) {
+        return {
+          questionIndex: q.index,
+          questionId: q.id,
+          questionTitle: q.title,
+          questionType: q.type,
+          userAnswer: answer,
+          matchedValue: wholeMatch.option.text,
+          targetElements: wholeMatch.option.element ? [wholeMatch.option.element] : [],
+          score: wholeMatch.score,
+          tier: wholeMatch.tier,
+          status: wholeMatch.score === 1.0 ? 'EXACT' : 'FUZZY',
+          reason: wholeMatch.reason
+        };
+      }
+
+      // Step B: Otherwise, split the line by multi-value delimiters and match each sub-answer
       const subAnswers = Parser.splitMultiAnswer(answer);
       const matchedOptions = [];
       const targetEls = [];
@@ -195,10 +216,13 @@
 
       for (const subAns of subAnswers) {
         const match = Parser.findBestOptionMatch(subAns, q.options);
-        if (match) {
-          matchedOptions.push(match.option.text);
-          targetEls.push(match.option.element);
-          totalScore += match.score;
+        if (match && match.option) {
+          const el = match.option.element;
+          if (!targetEls.includes(el)) {
+            matchedOptions.push(match.option.text);
+            if (el) targetEls.push(el);
+            totalScore += match.score;
+          }
         }
       }
 
@@ -326,8 +350,9 @@
     const results = new Array(questions.length);
     const usedAnswerIndices = new Set();
     const resolvedQuestionIndices = new Set();
+    const isNptel = questions.some(q => q && q.isNptel);
 
-    // Pass 1: Resolve Pre-filled fields & Student Profile Identity Fields
+    // Pass 1: Resolve Pre-filled fields & Student Profile Identity Fields (bypassed on NPTEL)
     for (let i = 0; i < questions.length; i++) {
       const q = questions[i];
       if (skipFilledQuestions && q.isAlreadyFilled) {
@@ -345,7 +370,7 @@
           reason: 'Skipped: Field already filled by user'
         };
         resolvedQuestionIndices.add(i);
-      } else if (studentProfile) {
+      } else if (!isNptel && studentProfile) {
         const idModule = window.FormFlow.Identity;
         if (idModule) {
           const classification = idModule.classifyIdentityQuestion(q);

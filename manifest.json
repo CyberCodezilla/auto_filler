@@ -10,6 +10,10 @@
   ],
   "host_permissions": [
     "https://docs.google.com/forms/*",
+    "https://onlinecourses.nptel.ac.in/*",
+    "https://*.nptel.ac.in/*",
+    "https://swayam.gov.in/*",
+    "https://*.swayam.gov.in/*",
     "file://*/*",
     "http://localhost/*",
     "http://127.0.0.1/*",
@@ -35,16 +39,23 @@
     {
       "matches": [
         "https://docs.google.com/forms/*",
+        "https://onlinecourses.nptel.ac.in/*",
+        "https://*.nptel.ac.in/*",
+        "https://swayam.gov.in/*",
+        "https://*.swayam.gov.in/*",
         "file://*/*",
         "http://localhost/*",
         "http://127.0.0.1/*",
         "*://*/*"
       ],
+      "all_frames": true,
       "js": [
         "content/parser.js",
         "content/identity.js",
         "content/matcher.js",
         "content/scraper.js",
+        "content/nptel_scraper.js",
+        "content/pdf_exporter.js",
         "content/filler.js",
         "content/content.js"
       ],

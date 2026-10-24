@@ -208,6 +208,49 @@
       }
     }
 
+    // Exact textual match takes highest precedence
+    if (highestScore === 1.0) {
+      return bestMatch;
+    }
+
+    // Positional Option Shorthand Support:
+    // If user's answer is a single letter (e.g. 'A', 'B', 'c') or digit (e.g. '1', '2') or 'option A'
+    const normUser = normalize(userAnswer);
+    const letterMatch = normUser.match(/^(?:option\s+)?([a-z])$/i);
+    const digitMatch = normUser.match(/^(?:option\s+)?(\d{1,2})$/i);
+
+    if (letterMatch) {
+      const targetChar = letterMatch[1].toUpperCase();
+      const targetIdx = targetChar.charCodeAt(0) - 65; // 'A' -> 0, 'B' -> 1
+      const posOpt = options.find((opt, idx) => {
+        if (opt.letter && opt.letter.toUpperCase() === targetChar) return true;
+        const optIndex = opt.index !== undefined ? opt.index : idx;
+        return optIndex === targetIdx;
+      });
+      if (posOpt) {
+        return {
+          option: posOpt,
+          score: 1.0,
+          tier: 'EXACT',
+          reason: `Positional option match (${targetChar})`
+        };
+      }
+    } else if (digitMatch) {
+      const targetIdx = parseInt(digitMatch[1], 10) - 1; // 1 -> 0, 2 -> 1
+      const posOpt = options.find((opt, idx) => {
+        const optIndex = opt.index !== undefined ? opt.index : idx;
+        return optIndex === targetIdx;
+      });
+      if (posOpt) {
+        return {
+          option: posOpt,
+          score: 1.0,
+          tier: 'EXACT',
+          reason: `Positional option match (${digitMatch[1]})`
+        };
+      }
+    }
+
     // Must be at least 0.80 to be accepted
     if (highestScore >= 0.80) {
       return bestMatch;
@@ -217,15 +260,24 @@
   }
 
   /**
-   * Splits an answer into multiple items if it contains delimiters (e.g. comma, semicolon).
+   * Splits an answer into multiple items if it contains delimiters (e.g. comma, semicolon, pipe).
    * Useful for checkbox multi-selects.
    */
   function splitMultiAnswer(answerStr) {
     if (!answerStr) return [];
-    if (answerStr.includes(';') || answerStr.includes(',')) {
-      const delimiter = answerStr.includes(';') ? ';' : ',';
+    // Check for delimiters: ;, |, or ,
+    if (/[;|,]/g.test(answerStr)) {
       return answerStr
-        .split(delimiter)
+        .split(/[;|,]/)
+        .map(s => cleanLine(s))
+        .filter(s => s.length > 0);
+    }
+    // Check if space-separated or 'and'-separated single letters e.g. "A B C" or "A and C"
+    const trimmed = answerStr.trim();
+    if (/^[A-Za-z](?:\s+(?:and\s+)?[A-Za-z])+$/i.test(trimmed)) {
+      return trimmed
+        .replace(/\band\b/gi, ' ')
+        .split(/\s+/)
         .map(s => cleanLine(s))
         .filter(s => s.length > 0);
     }

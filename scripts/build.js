@@ -71,7 +71,11 @@ const hardenedManifest = {
     "storage"
   ],
   host_permissions: [
-    "https://docs.google.com/forms/*"
+    "https://docs.google.com/forms/*",
+    "https://onlinecourses.nptel.ac.in/*",
+    "https://*.nptel.ac.in/*",
+    "https://swayam.gov.in/*",
+    "https://*.swayam.gov.in/*"
   ],
   action: {
     default_popup: "popup/popup.html",
@@ -92,13 +96,20 @@ const hardenedManifest = {
   content_scripts: [
     {
       matches: [
-        "https://docs.google.com/forms/*"
+        "https://docs.google.com/forms/*",
+        "https://onlinecourses.nptel.ac.in/*",
+        "https://*.nptel.ac.in/*",
+        "https://swayam.gov.in/*",
+        "https://*.swayam.gov.in/*"
       ],
+      all_frames: true,
       js: [
         "content/parser.js",
         "content/identity.js",
         "content/matcher.js",
         "content/scraper.js",
+        "content/nptel_scraper.js",
+        "content/pdf_exporter.js",
         "content/filler.js",
         "content/content.js"
       ],
@@ -111,7 +122,7 @@ const hardenedManifest = {
 };
 
 fs.writeFileSync(path.join(distDir, 'manifest.json'), JSON.stringify(hardenedManifest, null, 2));
-console.log('✔ Hardened manifest.json (strictly scoped to https://docs.google.com/forms/*)');
+console.log('✔ Hardened manifest.json (strictly scoped to Google Forms and SWAYAM / NPTEL)');
 
 // 5. Build ZIP archive using PowerShell Compress-Archive
 const zipFileName = `formflow-v${version}.zip`;

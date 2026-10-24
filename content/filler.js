@@ -19,42 +19,125 @@
   }
 
   /**
+   * Helper to dispatch the complete bubbling event sequence
+   * (pointerdown -> mousedown -> mouseup -> click -> input -> change)
+   */
+  function dispatchTrustedEvents(el, eventNames) {
+    const view = typeof window !== 'undefined' ? window : null;
+    eventNames.forEach(name => {
+      let evt;
+      if (['pointerdown', 'mousedown', 'mouseup', 'click'].includes(name)) {
+        evt = new MouseEvent(name, { bubbles: true, cancelable: true, view: view });
+      } else {
+        evt = new Event(name, { bubbles: true, cancelable: true });
+      }
+      el.dispatchEvent(evt);
+    });
+  }
+
+  /**
    * Dispatches input events using native prototype setters for bulletproof Wiz/Closure state registration
+   * Includes numeric input sanitization (stripping trailing units for input[type="number"]).
    */
   function fillTextInput(input, text) {
     if (!input) return;
 
     input.focus();
 
-    // Use native prototype setter to bypass React/Closure internal value trackers
+    let valueToSet = text;
+    // Numerical Input Sanitization:
+    // If input is type="number", extract pure numeric float/int to prevent browser rejection
+    if (input.type === 'number' || input.getAttribute('type') === 'number') {
+      const match = String(text).match(/[-+]?\d*\.?\d+(?:[eE][-+]?\d+)?/);
+      if (match) {
+        valueToSet = match[0];
+      }
+    }
+
+    // Use native prototype setter to bypass React/Closure/CourseBuilder internal value trackers
     const prototype = Object.getPrototypeOf(input);
     const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
 
     if (prototypeValueSetter) {
-      prototypeValueSetter.call(input, text);
+      prototypeValueSetter.call(input, valueToSet);
     } else {
-      input.value = text;
+      input.value = valueToSet;
     }
 
-    // Dispatch synthetic events
-    input.dispatchEvent(new Event('input', { bubbles: true, cancelable: true }));
-    input.dispatchEvent(new Event('change', { bubbles: true, cancelable: true }));
+    // Dispatch full bubbling events
+    dispatchTrustedEvents(input, ['input', 'change']);
     input.blur();
   }
 
   /**
-   * Clicks a radio or checkbox element safely
+   * Clicks or updates a radio or checkbox element safely using native prototype setters
+   * and the complete bubbling event sequence (pointerdown -> mousedown -> mouseup -> click -> input -> change).
    */
-  function clickChoiceElement(el) {
+  function clickChoiceElement(el, shouldBeChecked = true) {
     if (!el) return;
 
     el.focus();
-    el.click();
 
-    // Additional synthetic events to ensure listeners fire
-    el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window }));
-    el.dispatchEvent(new Event('input', { bubbles: true }));
-    el.dispatchEvent(new Event('change', { bubbles: true }));
+    // Check if el is native HTMLInputElement (used in NPTEL)
+    if (el.tagName && el.tagName.toLowerCase() === 'input') {
+      const isRadio = el.type === 'radio';
+      const isCheckbox = el.type === 'checkbox';
+
+      if (isRadio || isCheckbox) {
+        const proto = Object.getPrototypeOf(el);
+        const checkedSetter = Object.getOwnPropertyDescriptor(proto, 'checked')?.set;
+
+        if (checkedSetter) {
+          checkedSetter.call(el, shouldBeChecked);
+        } else {
+          el.checked = shouldBeChecked;
+        }
+
+        dispatchTrustedEvents(el, ['pointerdown', 'mousedown', 'mouseup', 'click', 'input', 'change']);
+        return;
+      }
+    }
+
+    // Google Forms ARIA div role="radio" or role="checkbox"
+    el.click();
+    dispatchTrustedEvents(el, ['pointerdown', 'mousedown', 'mouseup', 'click', 'input', 'change']);
+  }
+
+  /**
+   * Handles native HTMLSelectElement dropdowns (used in NPTEL / CourseBuilder)
+   */
+  function fillNativeSelect(selectEl, matchedValue, matchedOption) {
+    if (!selectEl) return false;
+    selectEl.focus();
+
+    let targetVal = null;
+    if (matchedOption && matchedOption.value !== undefined) {
+      targetVal = matchedOption.value;
+    } else {
+      const cleanTarget = (matchedValue || '').trim().toLowerCase();
+      for (const opt of Array.from(selectEl.options)) {
+        const optText = (opt.text || '').trim().toLowerCase();
+        const optVal = (opt.value || '').trim().toLowerCase();
+        if (optText === cleanTarget || optVal === cleanTarget || (cleanTarget.length >= 2 && (optText.includes(cleanTarget) || cleanTarget.includes(optText)))) {
+          targetVal = opt.value;
+          break;
+        }
+      }
+    }
+
+    if (targetVal !== null) {
+      const proto = Object.getPrototypeOf(selectEl);
+      const valSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
+      if (valSetter) {
+        valSetter.call(selectEl, targetVal);
+      } else {
+        selectEl.value = targetVal;
+      }
+      dispatchTrustedEvents(selectEl, ['input', 'change']);
+      selectEl.blur();
+      return true;
+    }
+    return false;
   }
 
   /**
@@ -196,50 +279,95 @@
         // Do not alter or record into snapshot
       }
 
-      // 1. Text Inputs
-      else if (q.type === 'text' || q.type === 'textarea') {
-        if (q.inputElement && planItem.userAnswer) {
+      // 1. Text Inputs (Short answer, Paragraph, Numerical)
+      else if (q.type === 'text' || q.type === 'textarea' || q.type === 'number') {
+        const inputEl = q.inputElement;
+        if (inputEl && planItem.userAnswer) {
           snapshot.textInputs.push({
-            element: q.inputElement,
-            previousValue: q.inputElement.value,
+            element: inputEl,
+            previousValue: inputEl.value,
             isProfileField: !!planItem.isProfileField
           });
 
-          fillTextInput(q.inputElement, planItem.userAnswer);
+          fillTextInput(inputEl, planItem.userAnswer);
           fillSuccess = true;
         }
       }
 
-      // 2. Choice Inputs (Radio / Checkbox)
+      // 2. Choice Inputs (Radio / Checkbox / Grid)
       else if (q.type === 'radio' || q.type === 'checkbox' || q.type === 'grid') {
-        if (planItem.targetElements && planItem.targetElements.length > 0) {
-          for (const el of planItem.targetElements) {
-            const wasChecked = el.getAttribute('aria-checked') === 'true';
-            snapshot.choiceInputs.push({
-              element: el,
-              previousState: wasChecked,
-              isProfileField: !!planItem.isProfileField
-            });
+        if (q.type === 'checkbox') {
+          const targetEls = planItem.targetElements || [];
+          if (q.options && q.options.length > 0) {
+            for (const opt of q.options) {
+              const el = opt.element;
+              if (!el) continue;
+              const isTarget = targetEls.includes(el);
+              const wasChecked = el.tagName && el.tagName.toLowerCase() === 'input'
+                ? el.checked
+                : el.getAttribute('aria-checked') === 'true';
 
-            if (!wasChecked) {
-              clickChoiceElement(el);
+              snapshot.choiceInputs.push({
+                element: el,
+                previousState: wasChecked,
+                isProfileField: !!planItem.isProfileField
+              });
+
+              if (isTarget && !wasChecked) {
+                clickChoiceElement(el, true);
+              } else if (!isTarget && wasChecked) {
+                clickChoiceElement(el, false);
+              }
             }
+            fillSuccess = targetEls.length > 0;
+          } else {
+            for (const el of targetEls) {
+              clickChoiceElement(el, true);
+            }
+            fillSuccess = targetEls.length > 0;
           }
-          fillSuccess = true;
+        } else {
+          // Radio / Grid
+          if (planItem.targetElements && planItem.targetElements.length > 0) {
+            for (const el of planItem.targetElements) {
+              const wasChecked = el.tagName && el.tagName.toLowerCase() === 'input'
+                ? el.checked
+                : el.getAttribute('aria-checked') === 'true';
+
+              snapshot.choiceInputs.push({
+                element: el,
+                previousState: wasChecked,
+                isProfileField: !!planItem.isProfileField
+              });
+
+              if (!wasChecked) {
+                clickChoiceElement(el, true);
+              }
+            }
+            fillSuccess = true;
+          }
         }
       }
 
-      // 3. Dropdown (listbox)
+      // 3. Dropdown (HTMLSelectElement or Google Form listbox)
       else if (q.type === 'dropdown') {
         if (planItem.status !== 'UNMATCHED' && planItem.status !== 'SKIPPED' && planItem.status !== 'SKIPPED_PREFILLED') {
-          const success = await fillDropdown(
-            planItem.dropdownTrigger || q.listbox,
-            planItem.matchedValue,
-            planItem.targetElements?.[0]
-          );
-          fillSuccess = success;
+          if (q.selectElement) {
+            const success = fillNativeSelect(q.selectElement, planItem.matchedValue, planItem.dropdownOption);
+            fillSuccess = success;
+          } else {
+            const success = await fillDropdown(
+              planItem.dropdownTrigger || q.listbox,
+              planItem.matchedValue,
+              planItem.targetElements?.[0]
+            );
+            fillSuccess = success;
+          }
         }
       }
+
+      // Brief stagger between questions for reactive framework state updates
+      await wait(30);
 
       // Inject visual pill badge into question header
       injectVisualIndicator(q.container, planItem);

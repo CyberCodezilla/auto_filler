@@ -28,10 +28,30 @@
   }
 
   /**
-   * Auto-fill student profile on initial form load if option is enabled
+   * Helper to scrape active questions using either NPTEL or Google Forms scraper
+   */
+  function scrapeActiveQuestions() {
+    if (window.FormFlow.NptelScraper && window.FormFlow.NptelScraper.isNptelPage()) {
+      const nptelQs = window.FormFlow.NptelScraper.scrapeNptelQuestions();
+      if (nptelQs && nptelQs.length > 0) {
+        return { questions: nptelQs, isNptel: true };
+      }
+    }
+    if (window.FormFlow.Scraper) {
+      const formQs = window.FormFlow.Scraper.scrapeFormQuestions();
+      return { questions: formQs || [], isNptel: false };
+    }
+    return { questions: [], isNptel: false };
+  }
+
+  /**
+   * Auto-fill student profile on initial form load if option is enabled (Google Forms only)
    */
   function checkAndAutoFillProfile() {
     if (typeof chrome === 'undefined' || !chrome.storage || !chrome.storage.local) return;
+
+    // Do not run on NPTEL pages
+    if (window.FormFlow.NptelScraper && window.FormFlow.NptelScraper.isNptelPage()) return;
 
     chrome.storage.local.get(['studentProfile', 'autoFillProfileOnLoad'], res => {
       if (!res || !res.autoFillProfileOnLoad || !res.studentProfile) return;
@@ -43,7 +63,7 @@
       // Give Google Forms a moment to hydrate dynamic DOM
       setTimeout(async () => {
         try {
-          const questions = window.FormFlow.Scraper.scrapeFormQuestions();
+          const questions = window.FormFlow.Scraper ? window.FormFlow.Scraper.scrapeFormQuestions() : [];
           if (!questions || questions.length === 0) return;
 
           // Check if any question is already answered
@@ -76,11 +96,11 @@
 
     if (action === 'GET_FORM_INFO' || action === 'PING') {
       try {
-        const questions = window.FormFlow.Scraper.scrapeFormQuestions();
+        const { questions, isNptel } = scrapeActiveQuestions();
         const prefilledCount = questions.filter(q => q.isAlreadyFilled).length;
         const unfilledCount = questions.filter(q => !q.isAlreadyFilled).length;
 
-        const identityCount = questions.filter(q => {
+        const identityCount = isNptel ? 0 : questions.filter(q => {
           if (window.FormFlow.Identity) {
             return window.FormFlow.Identity.classifyIdentityQuestion(q).isIdentity;
           }
@@ -90,6 +110,7 @@
         sendResponse({
           success: true,
           isForm: questions.length > 0,
+          isNptel: !!isNptel,
           questionCount: questions.length,
           prefilledCount,
           unfilledCount,
@@ -103,9 +124,10 @@
             isRequired: q.isRequired,
             isAlreadyFilled: q.isAlreadyFilled,
             currentValue: q.currentValue,
-            isIdentityField: window.FormFlow.Identity
+            isNptel: !!q.isNptel,
+            isIdentityField: isNptel ? false : (window.FormFlow.Identity
               ? window.FormFlow.Identity.classifyIdentityQuestion(q).isIdentity
-              : q.isIdentityField
+              : q.isIdentityField)
           }))
         });
       } catch (err) {
@@ -113,6 +135,7 @@
           success: false,
           error: err.message,
           isForm: false,
+          isNptel: false,
           questionCount: 0,
           prefilledCount: 0,
           unfilledCount: 0,
@@ -171,33 +194,37 @@
             return;
           }
 
-          const questions = window.FormFlow.Scraper.scrapeFormQuestions();
+          const { questions, isNptel } = scrapeActiveQuestions();
           if (questions.length === 0) {
             sendResponse({
               success: false,
-              error: 'No active Google Form question containers detected on this page.'
+              error: 'No active assessment question containers detected on this page.'
             });
             return;
           }
 
-          // Retrieve student profile for Pass 1 resolution
+          // Retrieve student profile for Pass 1 resolution (ignored if on NPTEL)
           let profile = request.studentProfile;
-          const hasProfileValues = profile && Object.values(profile).some(v => typeof v === 'string' && v.trim().length > 0);
-          if (!hasProfileValues) {
-            const stored = await getStoredProfile();
-            profile = stored.studentProfile || null;
-          } else {
-            const stored = await getStoredProfile();
-            if (stored && stored.studentProfile) {
-              profile = { ...stored.studentProfile, ...profile };
+          if (!isNptel) {
+            const hasProfileValues = profile && Object.values(profile).some(v => typeof v === 'string' && v.trim().length > 0);
+            if (!hasProfileValues) {
+              const stored = await getStoredProfile();
+              profile = stored.studentProfile || null;
+            } else {
+              const stored = await getStoredProfile();
+              if (stored && stored.studentProfile) {
+                profile = { ...stored.studentProfile, ...profile };
+              }
             }
+          } else {
+            profile = null;
           }
 
           let matchPlan;
           if (mode === 'smart_shuffle') {
             matchPlan = window.FormFlow.Matcher.matchSmartShuffle(questions, userAnswers, skipFilledQuestions, profile);
           } else {
-            // Sequential mapping with 2-pass profile identity resolution
+            // Sequential mapping with 2-pass profile identity resolution (or direct 1:1 on NPTEL)
             matchPlan = window.FormFlow.Matcher.matchSequential(questions, userAnswers, true, skipFilledQuestions, profile);
           }
 
@@ -206,6 +233,7 @@
           sendResponse({
             success: true,
             mode,
+            isNptel,
             skipFilledQuestions,
             parsedAnswersCount: userAnswers.length,
             ...executionResult
@@ -219,6 +247,25 @@
         }
       })();
 
+      return true;
+    }
+
+    if (action === 'EXPORT_PDF') {
+      (async () => {
+        try {
+          if (!window.FormFlow.PdfExporter) {
+            throw new Error('FormFlow PDF Exporter module not loaded.');
+          }
+          const highlightSelected = request.highlightSelected !== undefined ? request.highlightSelected : true;
+          const result = await window.FormFlow.PdfExporter.exportQuizToPdf({
+            highlightSelected
+          });
+          sendResponse({ success: true, ...result });
+        } catch (err) {
+          console.error('[FormFlow] PDF export error:', err);
+          sendResponse({ success: false, error: err.message });
+        }
+      })();
       return true;
     }
 

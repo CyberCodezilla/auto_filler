@@ -37,6 +37,15 @@
         Fill
       </button>
 
+      <button class="tab-btn" id="tabNptelBtn" data-tab="nptel">
+        <svg class="tab-icon" viewBox="0 0 16 16" fill="currentColor">
+          <path d="M1 2.5A1.5 1.5 0 012.5 1h11A1.5 1.5 0 0115 2.5v11a1.5 1.5 0 01-1.5 1.5h-11A1.5 1.5 0 011 13.5v-11zM2.5 2a.5.5 0 00-.5.5v11a.5.5 0 00.5.5h11a.5.5 0 00.5-.5v-11a.5.5 0 00-.5-.5h-11z"/>
+          <path d="M4 4.5h8v1H4v-1zm0 3h8v1H4v-1zm0 3h5v1H4v-1z"/>
+        </svg>
+        NPTEL
+        <span class="report-badge hidden" id="nptelDetectedBadge">0</span>
+      </button>
+
       <button class="tab-btn" id="tabProfileBtn" data-tab="profile">
         <svg class="tab-icon" viewBox="0 0 16 16" fill="currentColor">
           <path d="M8 8a3 3 0 100-6 3 3 0 000 6zm2-3a2 2 0 11-4 0 2 2 0 014 0zm4 8c0-2.21-3.58-4-6-4s-6 1.79-6 4v1h12v-1zm-1.07 0H3.07C3.59 11.83 5.76 11 8 11s4.41.83 4.93 2z"/>
@@ -132,7 +141,85 @@
       </div>
     </main>
 
-    <!-- TAB 2: PROFILE VIEW -->
+    <!-- TAB 2: NPTEL & SWAYAM VIEW -->
+    <main class="tab-content" id="viewNptel">
+      <!-- Always-On Flawless PDF Exporter Card -->
+      <div class="nptel-export-card">
+        <div class="nptel-export-header">
+          <div class="export-badge-pill">
+            <span class="pulse-dot"></span>
+            <span>VECTOR PDF</span>
+          </div>
+          <div class="export-card-title">Flawless Quiz Exporter</div>
+          <div class="export-card-desc">Captures all questions, formulas, diagrams, & circuits. Zero glitches.</div>
+        </div>
+
+        <div class="export-options-row">
+          <label class="checkbox-label" title="Highlight selected/answered options in exported document">
+            <input type="checkbox" id="highlightPdfCheck" checked>
+            <span class="custom-checkbox"></span>
+            <span class="checkbox-text">Highlight selected answers in PDF</span>
+          </label>
+        </div>
+
+        <button class="primary-btn btn-emerald" id="exportPdfBtn" title="Export opened assessment with all images to PDF">
+          <span class="btn-spinner hidden" id="pdfBtnSpinner"></span>
+          <svg class="btn-icon" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M4 2.5a.5.5 0 01.5-.5h5.086a.5.5 0 01.353.146l3.415 3.415a.5.5 0 01.146.353V13.5a.5.5 0 01-.5.5h-8.5a.5.5 0 01-.5-.5v-11zm1 .5v10h7.5V6H9.5A.5.5 0 019 5.5V3H5zm4.5.707V5h1.293L9.5 3.707z"/>
+          </svg>
+          <span id="exportPdfBtnLabel">📄 Export Entire Quiz to PDF (With Images)</span>
+        </button>
+
+        <div class="pdf-status-banner hidden" id="pdfStatusBanner">
+          <span class="status-spinner"></span>
+          <span id="pdfStatusText">Hydrating images...</span>
+        </div>
+      </div>
+
+      <!-- NPTEL Mode Info & Answer Input -->
+      <div class="controls-bar" style="margin-top: 10px;">
+        <div class="platform-badge">
+          <span class="platform-dot"></span>
+          <span>SWAYAM / NPTEL Mode</span>
+        </div>
+        <div class="counter-badge" id="nptelLinesCounter">0 answers</div>
+      </div>
+
+      <div class="editor-container">
+        <div class="editor-header">
+          <span class="editor-title">NPTEL QUIZ ANSWERS (PASTE BELOW)</span>
+          <div class="editor-actions">
+            <button class="text-link-btn" id="clearNptelInputBtn">Clear</button>
+          </div>
+        </div>
+        <div class="textarea-wrapper">
+          <textarea
+            id="nptelRawInput"
+            class="code-input"
+            placeholder="Paste NPTEL answers (letters, numbers, or full text)...&#10;1. A&#10;2. B, D&#10;3. 15.4 kHz&#10;4. Option name&#10;...&#10;No personal info required—all blocks are quiz questions."
+            spellcheck="false"
+          ></textarea>
+        </div>
+        <div class="editor-footer">
+          <span class="footer-tip">Press <kbd>Ctrl+Enter</kbd> to execute</span>
+          <span class="engine-tag">NPTEL All-4 Types</span>
+        </div>
+      </div>
+
+      <div class="alert-box hidden" id="nptelPageAlert"></div>
+
+      <div class="action-footer">
+        <button class="primary-btn btn-indigo" id="nptelExecuteBtn">
+          <span class="btn-spinner hidden" id="nptelBtnSpinner"></span>
+          <svg class="btn-icon" viewBox="0 0 16 16" fill="currentColor">
+            <path d="M7.75 2a.75.75 0 01.75.75V7h4.25a.75.75 0 010 1.5H8.5v4.25a.75.75 0 01-1.5 0V8.5H2.75a.75.75 0 010-1.5H7V2.75A.75.75 0 017.75 2z"/>
+          </svg>
+          <span id="nptelExecuteBtnLabel">⚡ Fill NPTEL Quiz</span>
+        </button>
+      </div>
+    </main>
+
+    <!-- TAB 3: PROFILE VIEW -->
     <main class="tab-content" id="viewProfile">
       <div class="profile-container">
         <div class="profile-header-box">

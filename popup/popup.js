@@ -25,10 +25,13 @@
   const connectionBadge = document.getElementById('connectionBadge');
   const connectionText = document.getElementById('connectionText');
   const tabInputBtn = document.getElementById('tabInputBtn');
+  const tabNptelBtn = document.getElementById('tabNptelBtn');
   const tabProfileBtn = document.getElementById('tabProfileBtn');
   const tabReportBtn = document.getElementById('tabReportBtn');
+  const nptelDetectedBadge = document.getElementById('nptelDetectedBadge');
   const reportCountBadge = document.getElementById('reportCountBadge');
   const viewInput = document.getElementById('viewInput');
+  const viewNptel = document.getElementById('viewNptel');
   const viewProfile = document.getElementById('viewProfile');
   const viewReport = document.getElementById('viewReport');
 
@@ -45,6 +48,21 @@
   const btnSpinner = document.getElementById('btnSpinner');
   const pageAlert = document.getElementById('pageAlert');
   const shortcutKbd = document.getElementById('shortcutKbd');
+
+  // DOM Elements - NPTEL Tab
+  const exportPdfBtn = document.getElementById('exportPdfBtn');
+  const exportPdfBtnLabel = document.getElementById('exportPdfBtnLabel');
+  const pdfBtnSpinner = document.getElementById('pdfBtnSpinner');
+  const highlightPdfCheck = document.getElementById('highlightPdfCheck');
+  const pdfStatusBanner = document.getElementById('pdfStatusBanner');
+  const pdfStatusText = document.getElementById('pdfStatusText');
+  const nptelRawInput = document.getElementById('nptelRawInput');
+  const nptelLinesCounter = document.getElementById('nptelLinesCounter');
+  const clearNptelInputBtn = document.getElementById('clearNptelInputBtn');
+  const nptelExecuteBtn = document.getElementById('nptelExecuteBtn');
+  const nptelExecuteBtnLabel = document.getElementById('nptelExecuteBtnLabel');
+  const nptelBtnSpinner = document.getElementById('nptelBtnSpinner');
+  const nptelPageAlert = document.getElementById('nptelPageAlert');
 
   // DOM Elements - Profile Tab
   const profFullName = document.getElementById('profFullName');
@@ -116,25 +134,36 @@
 
       chrome.tabs.sendMessage(activeTabId, { action: 'GET_FORM_INFO' }, (response) => {
         if (chrome.runtime.lastError || !response) {
-          setConnectionState(false, 'Not on Google Form');
-          showAlert('Please open a Google Form or FormFlow test page to use autofill.', 'warning');
+          setConnectionState(false, 'Not connected');
+          showAlert('Please open a Google Form or NPTEL course page.', 'warning');
           activeTabIsForm = false;
         } else if (response.isForm) {
-          let statusText = `Connected (${response.questionCount} Qs`;
-          if (response.identityCount > 0) {
-            statusText += ` • ${response.identityCount} Profile`;
-          }
-          if (response.prefilledCount > 0) {
-            statusText += ` • ${response.prefilledCount} Filled`;
-          }
-          statusText += ')';
-
-          setConnectionState(true, statusText);
           activeTabIsForm = true;
           hideAlert();
+
+          if (response.isNptel) {
+            // Auto switch to NPTEL Tab
+            switchTab('nptel');
+            setConnectionState(true, `NPTEL (${response.questionCount} Qs)`);
+            if (nptelDetectedBadge) {
+              nptelDetectedBadge.textContent = response.questionCount;
+              nptelDetectedBadge.classList.remove('hidden');
+            }
+          } else {
+            let statusText = `Connected (${response.questionCount} Qs`;
+            if (response.identityCount > 0) {
+              statusText += ` • ${response.identityCount} Profile`;
+            }
+            if (response.prefilledCount > 0) {
+              statusText += ` • ${response.prefilledCount} Filled`;
+            }
+            statusText += ')';
+
+            setConnectionState(true, statusText);
+          }
         } else {
           setConnectionState(false, 'No questions found');
-          showAlert('Page open, but 0 Google Form questions detected.', 'warning');
+          showAlert('Page open, but 0 questions detected.', 'warning');
           activeTabIsForm = false;
         }
       });
@@ -153,10 +182,13 @@
   }
 
   /**
-   * Sets up 3-Tab switching
+   * Sets up 4-Tab switching
    */
   function setupTabNavigation() {
     tabInputBtn.addEventListener('click', () => switchTab('input'));
+    if (tabNptelBtn) {
+      tabNptelBtn.addEventListener('click', () => switchTab('nptel'));
+    }
     tabProfileBtn.addEventListener('click', () => switchTab('profile'));
     tabReportBtn.addEventListener('click', () => switchTab('report'));
     goToInputBtn.addEventListener('click', () => switchTab('input'));
@@ -167,19 +199,23 @@
   }
 
   function switchTab(tabName) {
-    [tabInputBtn, tabProfileBtn, tabReportBtn].forEach(btn => btn?.classList.remove('active'));
-    [viewInput, viewProfile, viewReport].forEach(view => view?.classList.remove('active'));
+    [tabInputBtn, tabNptelBtn, tabProfileBtn, tabReportBtn].forEach(btn => btn?.classList.remove('active'));
+    [viewInput, viewNptel, viewProfile, viewReport].forEach(view => view?.classList.remove('active'));
 
     if (tabName === 'input') {
-      tabInputBtn.classList.add('active');
-      viewInput.classList.add('active');
+      tabInputBtn?.classList.add('active');
+      viewInput?.classList.add('active');
+    } else if (tabName === 'nptel') {
+      tabNptelBtn?.classList.add('active');
+      viewNptel?.classList.add('active');
+      nptelRawInput?.focus();
     } else if (tabName === 'profile') {
-      tabProfileBtn.classList.add('active');
-      viewProfile.classList.add('active');
-      profFullName.focus();
+      tabProfileBtn?.classList.add('active');
+      viewProfile?.classList.add('active');
+      profFullName?.focus();
     } else if (tabName === 'report') {
-      tabReportBtn.classList.add('active');
-      viewReport.classList.add('active');
+      tabReportBtn?.classList.add('active');
+      viewReport?.classList.add('active');
     }
   }
 
@@ -187,17 +223,29 @@
    * Event Listeners for Editor, Profile & Actions
    */
   function setupEventListeners() {
-    // Live line count on input
+    // Live line count on Google Forms input
     rawInput.addEventListener('input', () => {
       updateLineCount();
       saveInputState();
     });
 
+    // Live line count on NPTEL input
+    if (nptelRawInput) {
+      nptelRawInput.addEventListener('input', () => {
+        updateNptelLineCount();
+        saveNptelInputState();
+      });
+    }
+
     // Keyboard shortcut (Ctrl/Cmd + Enter)
     window.addEventListener('keydown', (e) => {
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
-        triggerAutofill();
+        if (viewNptel && viewNptel.classList.contains('active')) {
+          triggerNptelFill();
+        } else {
+          triggerAutofill();
+        }
       }
     });
 
@@ -225,6 +273,25 @@
       updateLineCount();
       saveInputState();
     });
+
+    // NPTEL tab action buttons
+    if (clearNptelInputBtn) {
+      clearNptelInputBtn.addEventListener('click', () => {
+        if (nptelRawInput) {
+          nptelRawInput.value = '';
+          updateNptelLineCount();
+          saveNptelInputState();
+        }
+      });
+    }
+
+    if (exportPdfBtn) {
+      exportPdfBtn.addEventListener('click', triggerExportPdf);
+    }
+
+    if (nptelExecuteBtn) {
+      nptelExecuteBtn.addEventListener('click', triggerNptelFill);
+    }
 
     // Profile actions
     saveProfileBtn.addEventListener('click', () => {
@@ -269,6 +336,155 @@
     const count = lines.length;
     linesCounter.textContent = `${count} answer${count === 1 ? '' : 's'}`;
     return count;
+  }
+
+  /**
+   * Computes non-empty line count for NPTEL raw answers
+   */
+  function updateNptelLineCount() {
+    if (!nptelRawInput) return 0;
+    const text = nptelRawInput.value.trim();
+    if (!text) {
+      if (nptelLinesCounter) nptelLinesCounter.textContent = '0 answers';
+      return 0;
+    }
+
+    const lines = text
+      .split(/\r?\n/)
+      .map(l => l.trim())
+      .filter(l => l.length > 0);
+
+    const count = lines.length;
+    if (nptelLinesCounter) nptelLinesCounter.textContent = `${count} answer${count === 1 ? '' : 's'}`;
+    return count;
+  }
+
+  function saveNptelInputState() {
+    try {
+      if (nptelRawInput) {
+        chrome.storage.local.set({ formflow_nptel_input: nptelRawInput.value });
+      }
+    } catch (e) {}
+  }
+
+  function setNptelLoading(loading) {
+    if (!nptelExecuteBtn) return;
+    nptelExecuteBtn.disabled = loading;
+    if (loading) {
+      nptelBtnSpinner?.classList.remove('hidden');
+      if (nptelExecuteBtnLabel) nptelExecuteBtnLabel.textContent = 'Filling NPTEL Quiz...';
+    } else {
+      nptelBtnSpinner?.classList.add('hidden');
+      if (nptelExecuteBtnLabel) nptelExecuteBtnLabel.textContent = '⚡ Fill NPTEL Quiz';
+    }
+  }
+
+  function showNptelAlert(msg, type = 'info') {
+    if (!nptelPageAlert) return;
+    nptelPageAlert.textContent = msg;
+    nptelPageAlert.className = `alert-box ${type}`;
+    nptelPageAlert.classList.remove('hidden');
+  }
+
+  function hideNptelAlert() {
+    nptelPageAlert?.classList.add('hidden');
+  }
+
+  /**
+   * Triggers the Flawless Zero-Glitch Quiz-to-PDF Exporter
+   * Captures entire active quiz (all questions, options, MathJax formulas, and pre-hydrated images)
+   */
+  async function triggerExportPdf() {
+    if (!activeTabId) {
+      showNptelAlert('No active tab connected.', 'error');
+      return;
+    }
+
+    const highlight = highlightPdfCheck ? highlightPdfCheck.checked : true;
+
+    exportPdfBtn.disabled = true;
+    pdfBtnSpinner?.classList.remove('hidden');
+    if (exportPdfBtnLabel) exportPdfBtnLabel.textContent = 'Generating PDF...';
+    pdfStatusBanner?.classList.remove('hidden');
+    if (pdfStatusText) pdfStatusText.textContent = 'Pre-hydrating diagrams & formulas...';
+
+    chrome.tabs.sendMessage(
+      activeTabId,
+      {
+        action: 'EXPORT_PDF',
+        highlightSelected: highlight
+      },
+      (response) => {
+        exportPdfBtn.disabled = false;
+        pdfBtnSpinner?.classList.add('hidden');
+        if (exportPdfBtnLabel) exportPdfBtnLabel.textContent = '📄 Export Entire Quiz to PDF (With Images)';
+        pdfStatusBanner?.classList.add('hidden');
+
+        if (chrome.runtime.lastError) {
+          showNptelAlert(`PDF Export Error: ${chrome.runtime.lastError.message}`, 'error');
+          return;
+        }
+
+        if (!response || !response.success) {
+          showNptelAlert(response?.error || 'Failed to export quiz to PDF.', 'error');
+          return;
+        }
+
+        showNptelAlert(`Exported ${response.questionCount} questions to PDF successfully!`, 'success');
+        setTimeout(hideNptelAlert, 4000);
+      }
+    );
+  }
+
+  /**
+   * Triggers autofill for NPTEL quiz (100% quiz questions, bypassing identity pass)
+   */
+  async function triggerNptelFill() {
+    const text = nptelRawInput ? nptelRawInput.value.trim() : '';
+    if (!text) {
+      showNptelAlert('Please paste your NPTEL answers before clicking Fill.', 'warning');
+      nptelRawInput?.focus();
+      return;
+    }
+
+    setNptelLoading(true);
+    hideNptelAlert();
+
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) {
+      showNptelAlert('No active tab found.', 'error');
+      setNptelLoading(false);
+      return;
+    }
+
+    chrome.tabs.sendMessage(
+      tab.id,
+      {
+        action: 'FILL_FORM',
+        rawAnswers: text,
+        mode: 'sequential',
+        skipFilledQuestions: false,
+        studentProfile: null
+      },
+      (response) => {
+        setNptelLoading(false);
+
+        if (chrome.runtime.lastError) {
+          showNptelAlert(`Error connecting to tab: ${chrome.runtime.lastError.message}`, 'error');
+          return;
+        }
+
+        if (!response || !response.success) {
+          showNptelAlert(response?.error || 'Failed to fill NPTEL quiz.', 'error');
+          return;
+        }
+
+        latestAuditData = response;
+        saveAuditState(response);
+        renderAuditReport(response);
+        switchTab('report');
+      }
+    );
   }
 
   /**
@@ -659,6 +875,7 @@
     try {
       const stored = await chrome.storage.local.get([
         'formflow_input',
+        'formflow_nptel_input',
         'formflow_last_audit',
         'formflow_skip_filled',
         'studentProfile',
@@ -667,6 +884,10 @@
 
       if (stored.formflow_input) {
         rawInput.value = stored.formflow_input;
+      }
+      if (stored.formflow_nptel_input && nptelRawInput) {
+        nptelRawInput.value = stored.formflow_nptel_input;
+        updateNptelLineCount();
       }
       if (stored.formflow_skip_filled !== undefined && skipFilledCheck) {
         skipFilledCheck.checked = stored.formflow_skip_filled;
