@@ -439,9 +439,10 @@
 
     if (rawContainers.length === 0) return [];
 
-    // Filter out nested duplicates to keep the outermost question container
+    // Filter out parent wrappers that enclose other question containers
     const containers = rawContainers.filter(el => {
-      return !rawContainers.some(other => other !== el && other.contains(el));
+      const containsOther = rawContainers.some(other => other !== el && el.contains(other));
+      return !containsOther;
     });
 
     const questions = [];
@@ -482,7 +483,7 @@
       ));
       const select = container.querySelector('.qt-response select, select');
       const textInput = container.querySelector(
-        '.qt-response input[type="text"], .qt-response input[type="number"], .qt-response textarea, input[type="text"], input[type="number"], textarea'
+        '.qt-response input:not([type]), .qt-response input[type="text"], .qt-response input[type="number"], .qt-response textarea, input:not([type]), input[type="text"], input[type="number"], textarea'
       );
 
       let type = 'unknown';
@@ -554,6 +555,7 @@
           })
           .map((opt, optIdx) => ({
             index: optIdx,
+            letter: String.fromCharCode(65 + optIdx),
             text: opt.text.trim(),
             value: opt.value,
             element: opt,
@@ -561,7 +563,8 @@
           }));
         inputElement = select;
       } else if (textInput) {
-        type = textInput.type === 'number' ? 'number' : (textInput.tagName.toLowerCase() === 'textarea' ? 'textarea' : 'text');
+        const inputType = (textInput.getAttribute('type') || textInput.type || 'text').toLowerCase();
+        type = inputType === 'number' ? 'number' : (textInput.tagName.toLowerCase() === 'textarea' ? 'textarea' : 'text');
         inputElement = textInput;
       }
 
@@ -619,7 +622,7 @@
   function scrapeStructuralFallbackQuestions(rootDoc = document) {
     // Find all radio/checkbox groups, selects, or text inputs
     const allInputs = Array.from(rootDoc.querySelectorAll(
-      'input[type="radio"], input[type="checkbox"], [role="radio"], [role="checkbox"], select, input[type="text"], input[type="number"], textarea'
+      'input[type="radio"], input[type="checkbox"], [role="radio"], [role="checkbox"], select, input:not([type]), input[type="text"], input[type="number"], textarea'
     ));
     if (allInputs.length === 0) return [];
 
@@ -632,9 +635,10 @@
       const groupKey = (input.type === 'radio' || input.type === 'checkbox') ? `${input.type}-${name}` : `field-${Math.random()}`;
 
       if (!groupedQuestions.has(groupKey)) {
+        const inpType = (input.getAttribute('type') || input.type || 'text').toLowerCase();
         groupedQuestions.set(groupKey, {
           container,
-          type: input.type === 'radio' ? 'radio' : (input.type === 'checkbox' ? 'checkbox' : (input.tagName.toLowerCase() === 'select' ? 'dropdown' : 'text')),
+          type: inpType === 'radio' ? 'radio' : (inpType === 'checkbox' ? 'checkbox' : (input.tagName.toLowerCase() === 'select' ? 'dropdown' : (inpType === 'number' ? 'number' : (input.tagName.toLowerCase() === 'textarea' ? 'textarea' : 'text')))),
           inputs: [],
           select: input.tagName.toLowerCase() === 'select' ? input : null
         });
@@ -686,6 +690,7 @@
             .filter(o => o.value && o.value !== 'choose' && o.value !== 'select')
             .map((o, optIdx) => ({
               index: optIdx,
+              letter: String.fromCharCode(65 + optIdx),
               text: o.text.trim(),
               value: o.value,
               element: o,

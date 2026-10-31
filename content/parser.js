@@ -8,6 +8,9 @@
 
   window.FormFlow = window.FormFlow || {};
 
+  // Question prefixes: "Q1. ", "Q1: ", "Question 1: ", "Ans: "
+  const QUESTION_PREFIX_REGEX = /^(?:(?:question|ans(?:wer)?|q)\s*\d*[\.:\)\-\s]+)/i;
+
   // List markers: numbered/lettered with dot+space ("1. "), parens/colons ("1) ", "A: "), or bullets ("- ", "• ")
   // Strictly preserves decimals like "2.4 GHz"
   const LIST_MARKER_REGEX = /^(?:(?:\d+|[a-zA-Z])\.(?:\s+|$)|(?:\d+|[a-zA-Z])[\)\:\-]\s*|(?:\d+|[a-zA-Z])\s+[-–—]\s*|[-*•\u2022\u25E6\u2043\u2219]\s+)+/;
@@ -18,6 +21,8 @@
   function cleanLine(rawLine) {
     if (!rawLine) return '';
     let cleaned = rawLine.trim();
+    // Strip leading "Question 1: ", "Q1. ", "Ans: " prefixes
+    cleaned = cleaned.replace(QUESTION_PREFIX_REGEX, '').trim();
     // Strip leading list indicators e.g. "1. ", "A) ", "3 - ", "• ", "- "
     cleaned = cleaned.replace(LIST_MARKER_REGEX, '').trim();
     return cleaned;
@@ -196,14 +201,26 @@
     let highestScore = 0;
 
     for (const opt of options) {
-      const evaluation = evaluateMatch(userAnswer, opt.text);
-      if (evaluation.score > highestScore) {
-        highestScore = evaluation.score;
+      const evaluationText = evaluateMatch(userAnswer, opt.text);
+      let optScore = evaluationText.score;
+      let optEval = evaluationText;
+
+      // Also evaluate against option value if distinct and meaningful (useful for dropdowns)
+      if (opt.value && typeof opt.value === 'string' && opt.value !== opt.text && !/^\d+$/.test(opt.value)) {
+        const evaluationVal = evaluateMatch(userAnswer, opt.value);
+        if (evaluationVal.score > optScore) {
+          optScore = evaluationVal.score;
+          optEval = evaluationVal;
+        }
+      }
+
+      if (optScore > highestScore) {
+        highestScore = optScore;
         bestMatch = {
           option: opt,
-          score: evaluation.score,
-          tier: evaluation.tier,
-          reason: evaluation.reason
+          score: optScore,
+          tier: optEval.tier,
+          reason: optEval.reason
         };
       }
     }
@@ -215,7 +232,7 @@
 
     // Positional Option Shorthand Support:
     // If user's answer is a single letter (e.g. 'A', 'B', 'c') or digit (e.g. '1', '2') or 'option A'
-    const normUser = normalize(userAnswer);
+    const normUser = normalize(userAnswer).replace(/[\.\:\)\-]+$/, '').trim();
     const letterMatch = normUser.match(/^(?:option\s+)?([a-z])$/i);
     const digitMatch = normUser.match(/^(?:option\s+)?(\d{1,2})$/i);
 

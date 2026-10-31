@@ -136,8 +136,8 @@
    * Matches a single question against a given answer string
    */
   function matchSingleQuestion(q, answer) {
-    // 1. Text Inputs (Short answer, Paragraph)
-    if (q.type === 'text' || q.type === 'textarea') {
+    // 1. Text Inputs (Short answer, Paragraph, Numerical)
+    if (q.type === 'text' || q.type === 'textarea' || q.type === 'number') {
       return {
         questionIndex: q.index,
         questionId: q.id,
@@ -149,7 +149,7 @@
         score: 1.0,
         tier: 'TEXT',
         status: 'EXACT',
-        reason: 'Direct text input'
+        reason: q.type === 'number' ? 'Direct numerical input' : 'Direct text input'
       };
     }
 
@@ -271,6 +271,7 @@
           matchedValue: match.option.text,
           targetElements: match.option.element ? [match.option.element] : [],
           dropdownTrigger: q.listbox,
+          dropdownOption: match.option,
           score: match.score,
           tier: match.tier,
           status: match.score === 1.0 ? 'EXACT' : 'FUZZY',

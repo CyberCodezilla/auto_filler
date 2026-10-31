@@ -248,7 +248,7 @@
             matchPlan = window.FormFlow.Matcher.matchSmartShuffle(questions, userAnswers, skipFilledQuestions, profile);
           } else {
             // Sequential mapping with 2-pass profile identity resolution (or direct 1:1 on NPTEL)
-            matchPlan = window.FormFlow.Matcher.matchSequential(questions, userAnswers, true, skipFilledQuestions, profile);
+            matchPlan = window.FormFlow.Matcher.matchSequential(questions, userAnswers, false, skipFilledQuestions, profile);
           }
 
           const executionResult = await window.FormFlow.Filler.executeAutofill(questions, matchPlan);

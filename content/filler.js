@@ -55,8 +55,12 @@
     }
 
     // Use native prototype setter to bypass React/Closure/CourseBuilder internal value trackers
-    const prototype = Object.getPrototypeOf(input);
-    const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
+    const isTextArea = input.tagName && input.tagName.toLowerCase() === 'textarea';
+    const proto = isTextArea
+      ? (typeof HTMLTextAreaElement !== 'undefined' ? HTMLTextAreaElement.prototype : Object.getPrototypeOf(input))
+      : (typeof HTMLInputElement !== 'undefined' ? HTMLInputElement.prototype : Object.getPrototypeOf(input));
+    const prototypeValueSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set ||
+                                 Object.getOwnPropertyDescriptor(Object.getPrototypeOf(input), 'value')?.set;
 
     if (prototypeValueSetter) {
       prototypeValueSetter.call(input, valueToSet);
@@ -65,12 +69,12 @@
     }
 
     // Dispatch full bubbling events
-    dispatchTrustedEvents(input, ['input', 'change']);
+    dispatchTrustedEvents(input, ['focus', 'beforeinput', 'input', 'change']);
     input.blur();
   }
 
   /**
-   * Clicks or updates a radio or checkbox element safely using native prototype setters
+   * Clicks or updates a radio or checkbox element safely using native click() + prototype setters
    * and the complete bubbling event sequence (pointerdown -> mousedown -> mouseup -> click -> input -> change).
    */
   function clickChoiceElement(el, shouldBeChecked = true) {
@@ -84,16 +88,46 @@
       const isCheckbox = el.type === 'checkbox';
 
       if (isRadio || isCheckbox) {
-        const proto = Object.getPrototypeOf(el);
-        const checkedSetter = Object.getOwnPropertyDescriptor(proto, 'checked')?.set;
-
-        if (checkedSetter) {
-          checkedSetter.call(el, shouldBeChecked);
-        } else {
-          el.checked = shouldBeChecked;
+        if (isRadio) {
+          // Native click checks the radio button and unchecks other radios in the same group natively
+          el.click();
+          if (!el.checked) {
+            const proto = typeof HTMLInputElement !== 'undefined' ? HTMLInputElement.prototype : Object.getPrototypeOf(el);
+            const checkedSetter = Object.getOwnPropertyDescriptor(proto, 'checked')?.set;
+            if (checkedSetter) {
+              checkedSetter.call(el, true);
+            } else {
+              el.checked = true;
+            }
+          }
+        } else if (isCheckbox) {
+          if (el.checked !== shouldBeChecked) {
+            el.click();
+          }
+          if (el.checked !== shouldBeChecked) {
+            const proto = typeof HTMLInputElement !== 'undefined' ? HTMLInputElement.prototype : Object.getPrototypeOf(el);
+            const checkedSetter = Object.getOwnPropertyDescriptor(proto, 'checked')?.set;
+            if (checkedSetter) {
+              checkedSetter.call(el, shouldBeChecked);
+            } else {
+              el.checked = shouldBeChecked;
+            }
+          }
         }
 
         dispatchTrustedEvents(el, ['pointerdown', 'mousedown', 'mouseup', 'click', 'input', 'change']);
+
+        // Also activate associated label if present
+        const parentLabel = el.closest('label');
+        if (parentLabel && parentLabel !== el) {
+          dispatchTrustedEvents(parentLabel, ['click']);
+        } else if (el.id) {
+          try {
+            const doc = el.ownerDocument || document;
+            const linkedLabel = doc.querySelector(`label[for="${CSS.escape(el.id)}"]`);
+            if (linkedLabel) dispatchTrustedEvents(linkedLabel, ['click']);
+          } catch (e) {}
+        }
         return;
       }
     }
@@ -110,30 +144,76 @@
     if (!selectEl) return false;
     selectEl.focus();
 
+    let targetIndex = -1;
     let targetVal = null;
-    if (matchedOption && matchedOption.value !== undefined) {
-      targetVal = matchedOption.value;
-    } else {
-      const cleanTarget = (matchedValue || '').trim().toLowerCase();
-      for (const opt of Array.from(selectEl.options)) {
-        const optText = (opt.text || '').trim().toLowerCase();
-        const optVal = (opt.value || '').trim().toLowerCase();
-        if (optText === cleanTarget || optVal === cleanTarget || (cleanTarget.length >= 2 && (optText.includes(cleanTarget) || cleanTarget.includes(optText)))) {
-          targetVal = opt.value;
-          break;
+
+    if (matchedOption) {
+      if (matchedOption.value !== undefined) {
+        for (let i = 0; i < selectEl.options.length; i++) {
+          if (selectEl.options[i].value === matchedOption.value) {
+            targetIndex = i;
+            targetVal = selectEl.options[i].value;
+            break;
+          }
+        }
+      }
+      if (targetIndex === -1 && matchedOption.text) {
+        const cleanMatched = matchedOption.text.trim().toLowerCase();
+        for (let i = 0; i < selectEl.options.length; i++) {
+          if (selectEl.options[i].text.trim().toLowerCase() === cleanMatched) {
+            targetIndex = i;
+            targetVal = selectEl.options[i].value;
+            break;
+          }
         }
       }
     }
 
-    if (targetVal !== null) {
-      const proto = Object.getPrototypeOf(selectEl);
+    if (targetIndex === -1) {
+      const cleanTarget = (matchedValue || '').trim().toLowerCase();
+      // 1. Exact match against text or value
+      for (let i = 0; i < selectEl.options.length; i++) {
+        const opt = selectEl.options[i];
+        const optText = (opt.text || '').trim().toLowerCase();
+        const optVal = (opt.value || '').trim().toLowerCase();
+        if (optText === cleanTarget || optVal === cleanTarget) {
+          targetIndex = i;
+          targetVal = opt.value;
+          break;
+        }
+      }
+      // 2. Substring match
+      if (targetIndex === -1 && cleanTarget.length > 0) {
+        for (let i = 0; i < selectEl.options.length; i++) {
+          const opt = selectEl.options[i];
+          const optText = (opt.text || '').trim().toLowerCase();
+          if (cleanTarget.length >= 2 && (optText.includes(cleanTarget) || cleanTarget.includes(optText))) {
+            targetIndex = i;
+            targetVal = opt.value;
+            break;
+          }
+        }
+      }
+    }
+
+    if (targetIndex !== -1 && targetVal !== null) {
+      for (let i = 0; i < selectEl.options.length; i++) {
+        selectEl.options[i].selected = (i === targetIndex);
+      }
+      selectEl.selectedIndex = targetIndex;
+
+      const proto = typeof HTMLSelectElement !== 'undefined' ? HTMLSelectElement.prototype : Object.getPrototypeOf(selectEl);
       const valSetter = Object.getOwnPropertyDescriptor(proto, 'value')?.set;
       if (valSetter) {
         valSetter.call(selectEl, targetVal);
       } else {
         selectEl.value = targetVal;
       }
+
       dispatchTrustedEvents(selectEl, ['input', 'change']);
+      if (selectEl.options[targetIndex]) {
+        dispatchTrustedEvents(selectEl.options[targetIndex], ['click']);
+      }
       selectEl.blur();
       return true;
     }
